@@ -1,6 +1,6 @@
 # From point clouds to the values that must meet the thresholds
 
-Starter code: `trackqc/` (Python ≥ 3.10, `pip install numpy scipy pandas matplotlib statsmodels plyfile pye57`).
+Starter code: `trackqc/` (Python ≥ 3.10; packages in `requirements.txt` at the repository root, see section 4 for the venv).
 Tested on simulated scans only; the real Bucheggplatz clouds were not available here.
 
 ## 1. Which value is actually tested
@@ -64,6 +64,17 @@ which depends on distance and incidence), so the report's formulas with equal σ
    running surface relative to the groove head.
 
 ## 4. How to run
+
+Set up a virtual environment once, in the repository root (Windows cmd):
+
+```bat
+python -m venv .venv
+.venv\Scripts\activate
+python -m pip install -r requirements.txt
+```
+
+On macOS/Linux use `source .venv/bin/activate`. Activate the venv in every new terminal; `.venv/` is not committed.
+After installing a new package, add it to `requirements.txt` so the environment can be rebuilt.
 
 ```bash
 cd processing

@@ -1,0 +1,9 @@
+# Python packages for the GMP processing code (processing/trackqc, scripts/)
+# Install into a virtual environment:  python -m pip install -r requirements.txt
+numpy>=1.24
+scipy>=1.10
+pandas>=2.0
+matplotlib>=3.7
+statsmodels>=0.14
+plyfile>=1.0
+pye57>=0.4
