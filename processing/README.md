@@ -95,37 +95,39 @@ python -m trackqc.simulate --out demo/ --mc 25
 
 Labels must be `SCANNER_SETUP_CONDITION` (no further underscores); `limits.py` splits on them.
 
-### Quality criteria vs range and incidence (`trackqc/quality/`)
+### Railhead clips: numbered scripts (`railhead/`)
 
-One script per criterion, same inputs as `process_setup` (one clip with both rails, or `--left/--right`;
-origin from the E57 pose unless `--origin` is given). Reuse an existing `--axis` to get the same stations
-as other datasets; without it the axis is fitted from the cloud and saved to `<out>/<label>/axis.json`.
+For clouds cropped to the rail heads (two nearly horizontal, parallel strips; no groove detection,
+no track-part classification). Every scan is one dataset `SCANNER_SETUP`; scanner and setup come from the
+file name `SCANNER_SETUP[_anything].e57`, from `--scanner/--setup`, or from a list file
+(`path,scanner,setup[,origin_x,origin_y,origin_z]`, origin needed for PLY/ASCII). For E57 every scan is
+read with its own pose, so several setups may be in one file. Run from `processing/`:
 
 ```bash
-python -m trackqc.quality.density --cloud ../pointclouds/track-test.e57 --out results/
-python -m trackqc.quality.noise   --cloud ../pointclouds/track-test.e57 --out results/
-python -m trackqc.quality         --cloud ../pointclouds/track-test.e57 --out results/   # both, one load
+python railhead/00_prepare.py ../pointclouds/FARO_S1_dry.e57 ../pointclouds/RTC360_S1_dry.e57
+python railhead/00_prepare.py --list datasets.csv            # alternative
+python railhead/01_point_density.py                          # all prepared scans, per scanner
+python railhead/02_point_noise.py  --scanner FARO RTC360     # optional filter
 ```
 
 ```
-trackqc/quality/
-  common.py     loading, running band, segments, range/incidence, bin tables, fits, plots
-  density.py    criterion: point density, spacing, completeness; model density = k cos(inc) / r^2
-  noise.py      criterion: sigma_pc about a plane per segment, pooled sigma per bin, fits
-  __main__.py   all criteria from one loading of the cloud
-results/<label>/
-  band_profile.png                  check the running band first
-  axis.json                         track axis (if not given with --axis)
-  density.csv  noise.csv            one row per 0.5 m segment: metric, range_m, incidence_deg, ...
-  density_bins.csv  noise_bins.csv  per range bin, per incidence bin, per range x incidence cell
-  density_fit.json  noise_fit.json  fits against range and incidence, settings
-  density.png  noise.png            metric vs range and vs incidence
+railhead/
+  00_prepare.py         split rails, axis, stations, railhead band (head width minus --edge-trim per side)
+  01_point_density.py   density, spacing, completeness; model density = k cos(inc)/r^2 -> angular step
+  02_point_noise.py     sigma normal to the railhead, sigma/cos(inc) = range-equivalent noise, pooled per bin
+  shared/               config, data (reading, band, prepared files), segments, stats, plots
+results/railhead/
+  00_prepare/           <label>.npz/.json, <label>_railhead.png (check head edges and band)
+  01_point_density/     density_segments.csv, _bins.csv, _summary.csv (one row per scanner), _fit.json, density.png
+  02_point_noise/       noise_segments.csv, _bins.csv, _summary.csv, _fit.json, noise.png, noise_range_equiv.png
 ```
 
-A new criterion is one more module: a per-segment metric function (as `core.density_metrics`) passed to
-`common.segment_table`, then `common.bin_table` and `common.write_criterion`.
-On a horizontal surface cos(incidence) = h / range, so range and incidence are nearly collinear
-(`corr_range_incidence` in the fit files); the bins by range and by incidence describe the same trend.
+The plots show the metric against measurement distance and against angle of incidence, one colour and
+marker per scanner, with bin medians (IQR band) and the fitted model. A new criterion is one more script
+`03_....py` that reads the prepared scans with `data.load_prepared` and uses `segments.segment_table`,
+`stats.bin_table`, `stats.write_results` and `plots.plot_vs_range_incidence`.
+Checked on synthetic railheads (two scanners, two setups each): angular step 0.60 / 0.40 mrad and range noise
+0.49 / 0.99 mm recovered for simulated 0.6 / 0.4 mrad and 0.5 / 1.0 mm; log-log density slope −2.99.
 
 ## 5. Choices you need to make and justify
 
