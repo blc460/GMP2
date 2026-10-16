@@ -6,6 +6,12 @@ CloudCompare), the scanner origin in the same frame, and a shared track axis.
     python -m trackqc.process_setup --left FARO_S1_dry_L.ply --right FARO_S1_dry_R.ply \
         --origin 36.680 3.389 0.002 --axis axis.json --label FARO_S1_dry --out results/
 
+Alternatively one clip with both rails (PLY/E57/ASCII), split automatically at the
+gap between the rails. For E57 input the origin defaults to the pose translation:
+
+    python -m trackqc.process_setup --cloud ../pointclouds/track-test.e57 \
+        --axis axis.json --label TLS_E004_test --out results/
+
 If axis.json does not exist yet it is fitted from this dataset and saved; use the
 densest dataset for that and reuse the file for all others, so that the stations
 are identical across scanners and setups.
@@ -30,31 +36,30 @@ from . import core
 
 def run(left, right, origin, axis_path, label, out, seg_len=0.5, half_window=0.25,
         spacing=0.5, l=5.0, band_width=0.030, edge_margin=0.005, speed_class="48-60",
-        plot=True):
-    out = Path(out); out.mkdir(parents=True, exist_ok=True)
-    PL, PR = core.load_points(left), core.load_points(right)
-    axis_path = Path(axis_path)
-    if axis_path.exists():
-        axis = core.TrackAxis.load(axis_path)
-    else:
-        axis = core.TrackAxis.from_rails(PL, PR)
-        axis.save(axis_path)
-        print(f"fitted new track axis -> {axis_path}")
+        plot=True, cloud=None):
+    """left/right: one clip per rail; or cloud: one clip with both rails (left/right = None).
 
-    seg_rows, heights, bands = [], {}, {}
-    sq = {}
-    for side, P in (("L", PL), ("R", PR)):
-        s, q = axis.to_sq(P[:, :2])
-        if side == "L" and np.median(q) < 0 or side == "R" and np.median(q) > 0:
-            raise RuntimeError(f"rail {side} lies on the wrong side of the axis; swap --left/--right")
-        band = core.detect_running_band(s, q, P[:, 2], side, width=band_width, edge_margin=edge_margin)
-        bands[side], sq[side] = band, (P, s, q)
-        seg_rows += core.segment_metrics(P, s, q, band, origin, axis, seg_len=seg_len, label=label)
+    origin None: taken from the E57 pose of the input (E57 only).
+    """
+    out = Path(out); out.mkdir(parents=True, exist_ok=True)
+    PL, PR, origin, axis, bands, sq = prepare(left, right, origin, axis_path, band_width, edge_margin, cloud)
+    seg_rows, heights = [], {}
+    for side in ("L", "R"):
+        P, s, q = sq[side]
+        seg_rows += core.segment_metrics(P, s, q, bands[side], origin, axis, seg_len=seg_len, label=label)
 
     # common stations: multiples of `spacing`, inside both rails
     smin = max(sq[k][1].min() for k in sq) + half_window
     smax = min(sq[k][1].max() for k in sq) - half_window
     stations = np.arange(np.ceil(smin / spacing) * spacing, smax + 1e-9, spacing)
+    if len(stations) < 2:
+        raise RuntimeError(f"section too short for stations every {spacing} m with window +-{half_window} m")
+    length = float(stations[-1] - stations[0])
+    if length < l:
+        print(f"warning: stations cover {length:.2f} m < twist base {l} m: no twist values; "
+              f"versine needs {2 * l} m. Only segment statistics and rail heights are available.")
+    elif length < 2 * l:
+        print(f"warning: stations cover {length:.2f} m < versine base {2 * l} m: no versine values")
     for side in ("L", "R"):
         P, s, q = sq[side]
         heights[side] = core.rail_heights(P, s, q, bands[side], stations, half_window)
@@ -73,12 +78,15 @@ def run(left, right, origin, axis_path, label, out, seg_len=0.5, half_window=0.2
 
     sz = np.r_[geo["sigma_zL_mm"], geo["sigma_zR_mm"]]
     summary = dict(
-        label=label, origin=list(map(float, origin)), seg_len=seg_len, half_window=half_window,
+        label=label, origin=list(map(float, origin)), n_points=dict(L=len(PL), R=len(PR)),
+        n_stations=int(len(stations)), section_length_m=length, seg_len=seg_len, half_window=half_window,
         spacing=spacing, l=l, band={k: dict(q_lo=b.q_lo, q_hi=b.q_hi, groove_edge=b.groove_edge)
                                      for k, b in bands.items()},
         speed_class=speed_class, sigma_z_req_mm=crit["sigma_z_req_mm"],
         median_sigma_pc_mm=float(seg["sigma_pc_mm"].median()) if "sigma_pc_mm" in seg else None,
         median_sigma_z_formal_mm=float(np.nanmedian(np.r_[geo["sigma_zL_mm"], geo["sigma_zR_mm"]])),
+        median_gauge_band_distance_m=float(np.nanmedian(geo["b_m"])),
+        n_twist=int(np.isfinite(geo["twist_permille"]).sum()), n_vpf=int(np.isfinite(geo["vpf_mm"]).sum()),
         share_heights_meeting_req=float(np.mean(sz[np.isfinite(sz)] <= crit["sigma_z_req_mm"])),
     )
     with open(out / f"{label}_summary.json", "w") as f:
@@ -87,6 +95,41 @@ def run(left, right, origin, axis_path, label, out, seg_len=0.5, half_window=0.2
     if plot:
         plot_profiles(bands, out / f"{label}_profile.png", label)
     return seg, gdf, summary
+
+
+def prepare(left, right, origin, axis_path, band_width=0.030, edge_margin=0.005, cloud=None):
+    """Load one dataset, get the scanner origin and the track axis, and find both running bands.
+
+    Returns PL, PR, origin, axis, bands {side: RunningBand}, sq {side: (P, s, q)}.
+    axis_path: reused if it exists, otherwise fitted from this dataset and saved.
+    """
+    if cloud is not None:
+        PL, PR = core.split_rails(core.load_points(cloud))
+    else:
+        PL, PR = core.load_points(left), core.load_points(right)
+    if origin is None:
+        src = cloud if cloud is not None else left
+        if not str(src).lower().endswith(".e57"):
+            raise ValueError("--origin is required unless the input is an E57 file")
+        origin = core.e57_origin(src)
+        print(f"scanner origin from E57 pose: {np.round(origin, 4).tolist()}")
+    axis_path = Path(axis_path)
+    if axis_path.exists():
+        axis = core.TrackAxis.load(axis_path)
+    else:
+        axis = core.TrackAxis.from_rails(PL, PR)
+        axis.save(axis_path)
+        print(f"fitted new track axis -> {axis_path}")
+    if cloud is not None and np.median(axis.to_sq(PL[:, :2])[1]) < 0:
+        PL, PR = PR, PL          # automatic split: assign the sides by the axis actually used
+    bands, sq = {}, {}
+    for side, P in (("L", PL), ("R", PR)):
+        s, q = axis.to_sq(P[:, :2])
+        if side == "L" and np.median(q) < 0 or side == "R" and np.median(q) > 0:
+            raise RuntimeError(f"rail {side} lies on the wrong side of the axis; swap --left/--right")
+        bands[side] = core.detect_running_band(s, q, P[:, 2], side, width=band_width, edge_margin=edge_margin)
+        sq[side] = (P, s, q)
+    return PL, PR, np.asarray(origin, float), axis, bands, sq
 
 
 def plot_profiles(bands, path, label):
@@ -114,9 +157,12 @@ def plot_profiles(bands, path, label):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--left", required=True)
-    ap.add_argument("--right", required=True)
-    ap.add_argument("--origin", nargs=3, type=float, required=True, help="scanner origin x y z")
+    src = ap.add_mutually_exclusive_group(required=True)
+    src.add_argument("--left", help="clip of the left rail (PLY/E57/ASCII); needs --right")
+    src.add_argument("--cloud", help="one clip containing both rails; split at the gap between them")
+    ap.add_argument("--right")
+    ap.add_argument("--origin", nargs=3, type=float, default=None,
+                    help="scanner origin x y z (default for E57: pose translation)")
     ap.add_argument("--axis", required=True, help="track axis JSON (created if missing)")
     ap.add_argument("--label", required=True, help="e.g. FARO_S1_dry")
     ap.add_argument("--out", default="results")
@@ -126,8 +172,11 @@ def main():
     ap.add_argument("--edge-margin", type=float, default=0.005)
     ap.add_argument("--speed-class", default="48-60", choices=list(core.ATTENTION))
     a = ap.parse_args()
+    if (a.left is None) != (a.right is None):
+        ap.error("--left and --right must be given together")
     _, _, summary = run(a.left, a.right, a.origin, a.axis, a.label, a.out, a.seg_len, a.half_window,
-                        band_width=a.band_width, edge_margin=a.edge_margin, speed_class=a.speed_class)
+                        band_width=a.band_width, edge_margin=a.edge_margin, speed_class=a.speed_class,
+                        cloud=a.cloud)
     print(json.dumps(summary, indent=2))
 
 

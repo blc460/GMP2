@@ -23,11 +23,21 @@ MAD2SIGMA = 1.4826  # sigma = 1.4826 * MAD for normally distributed residuals
 
 # --------------------------------------------------------------------------- I/O
 def load_points(path):
-    """Read x, y, z from a PLY (binary/ascii) or an ASCII file (CloudCompare export).
+    """Read x, y, z from an E57, a PLY (binary/ascii) or an ASCII file (CloudCompare export).
 
-    Extra columns (intensity, ...) are ignored. Returns an (n, 3) float64 array.
+    E57: all scans are read and transformed with their pose into the file frame
+    (the registered, levelled frame). Extra columns (intensity, ...) are ignored.
+    Returns an (n, 3) float64 array.
     """
     path = str(path)
+    if path.lower().endswith(".e57"):
+        import pye57
+        e = pye57.E57(path)
+        parts = []
+        for i in range(e.scan_count):
+            d = e.read_scan(i, ignore_missing_fields=True, transform=True)
+            parts.append(np.column_stack([d["cartesianX"], d["cartesianY"], d["cartesianZ"]]))
+        return np.vstack(parts).astype(np.float64)
     if path.lower().endswith(".ply"):
         from plyfile import PlyData
         v = PlyData.read(path)["vertex"]
@@ -36,6 +46,51 @@ def load_points(path):
         return np.load(path)[:, :3].astype(np.float64)
     data = np.loadtxt(path, comments=("#", "//"), delimiter=None, usecols=(0, 1, 2))
     return np.atleast_2d(data).astype(np.float64)
+
+
+def e57_origin(path):
+    """Scanner origin = translation of the E57 pose of the first scan (file frame).
+
+    Several scans with different poses mean several setups; that is refused,
+    because one dataset must come from one scanner position.
+    """
+    import pye57
+    e = pye57.E57(str(path))
+    t = [np.asarray(e.get_header(i).translation, float) for i in range(e.scan_count)]
+    if any(np.linalg.norm(ti - t[0]) > 1e-3 for ti in t[1:]):
+        raise RuntimeError(f"{path}: scans with different poses (setups); export one setup per file")
+    return t[0]
+
+
+def split_rails(pts, step_deg=0.25):
+    """Split one cloud containing both rails into (left, right) along the empty gap.
+
+    The track direction is the horizontal direction whose normal projection shows
+    the widest empty gap between the two rails (robust for short sections where a
+    PCA direction is poorly defined). Left/right follow the TrackAxis convention
+    (direction with positive x component, left = positive lateral offset); the
+    caller should still check the sides against the axis actually used.
+    """
+    xy = pts[:, :2] - pts[:, :2].mean(axis=0)
+    best = (-1.0, None, None)
+    for th in np.radians(np.arange(0.0, 180.0, step_deg)):
+        d = np.array([np.cos(th), np.sin(th)])
+        v = np.sort(xy @ np.array([-d[1], d[0]]))
+        lo, hi = np.quantile(v, [0.05, 0.95])     # gap must lie between the rails, not at the border
+        inner = (v[:-1] >= lo) & (v[1:] <= hi)
+        if not inner.any():
+            continue
+        g = np.diff(v)[inner]
+        k = int(np.argmax(g))
+        if g[k] > best[0]:
+            best = (g[k], d, 0.5 * (v[:-1][inner][k] + v[1:][inner][k]))
+    gap, d, cut = best
+    if d is None or gap < 0.2:
+        raise RuntimeError(f"no gap between the rails found (widest {gap:.3f} m); clip the rails separately")
+    if d[0] < 0:
+        d, cut = -d, -cut
+    v = xy @ np.array([-d[1], d[0]])
+    return pts[v > cut], pts[v <= cut]
 
 
 # --------------------------------------------------------------------------- track axis
@@ -143,19 +198,24 @@ class RunningBand:
 
 def detect_running_band(s, q, z, side, width=0.030, edge_margin=0.005,
                         bin_size=0.002, slice_len=0.25, depth_thresh=0.008,
-                        count_frac=0.2, degree=3):
+                        count_frac=0.2, flat_tol=0.002, degree=3):
     """Locate the running surface of a grooved rail in the clipped rail points.
 
     1. Fit the clip centre line q_rail(s) and compute q_rel = q - q_rail(s).
     2. Reference height per 0.25 m slice = 90th percentile of z (top of rail);
        dz = z - z_ref(s).
     3. Stack all points into a lateral profile (2 mm bins): median dz and count.
-       Groove bins are deep (median dz < -8 mm) or nearly empty (occlusion,
-       count < 20 % of the median count).
-    4. The running surface lies on the field side of the groove (away from the
-       track centre). The band starts edge_margin beyond the groove edge (to skip
-       the rounded gauge corner) and is `width` wide. Both values come from the
-       rail profile drawing (e.g. Ri60N) and must be justified in the report.
+       Bins with fewer than 20 % of the median count are treated as empty.
+    4. Groove = deepest point of the smoothed profile (5-bin running median),
+       or, if it is less than depth_thresh deep, the widest empty run
+       (groove bottom occluded). The reference height is not used for this, so
+       paving or a guard rail higher than the running surface does not matter.
+    5. Walking from the groove towards the field side (away from the track
+       centre), the groove edge is the first bin from which the next
+       edge_margin + width are flat (unsmoothed profile within flat_tol).
+       The band starts edge_margin beyond the groove edge (rounded gauge corner)
+       and is `width` wide. Both values come from the rail profile drawing
+       (e.g. Ri60N) and must be justified in the report.
     """
     coeffs = np.polyfit(s, q, degree)
     qr = q - np.polyval(coeffs, s)
@@ -172,28 +232,64 @@ def detect_running_band(s, q, z, side, width=0.030, edge_margin=0.005,
     cnt = np.bincount(bi, minlength=len(qb) - 1)
     med = np.array([np.median(dz[bi == k]) if cnt[k] else np.nan for k in range(len(qb) - 1)])
     centers = 0.5 * (qb[:-1] + qb[1:])
-    groove = (cnt < count_frac * np.median(cnt[cnt > 0])) | (med < -depth_thresh)
-    # interior bins only: the clip borders are not the groove
-    groove[:2] = groove[-2:] = False
-    if not groove.any():
-        raise RuntimeError(f"rail {side}: no groove found in the lateral profile; check the clip")
-    # largest contiguous groove run
+    empty = cnt < count_frac * np.median(cnt[cnt > 0])
+    raw = np.where(empty, np.nan, med)
+    sm = _running_median(raw, 5)
+    interior = np.zeros(len(sm), bool)
+    interior[2:-2] = True                       # the clip borders are not the groove
+    k0 = None
+    if np.isfinite(sm[interior]).any():
+        k = int(np.nanargmin(np.where(interior, sm, np.nan)))
+        if np.nanmedian(sm) - sm[k] >= depth_thresh:
+            k0 = k
+    if k0 is None:                              # groove bottom not seen: widest empty run
+        runs = _runs(empty & interior)
+        if not runs:
+            raise RuntimeError(f"rail {side}: no groove found in the lateral profile; check the clip")
+        a, b = max(runs, key=lambda r: r[1] - r[0])
+        k0 = (a + b) // 2
+    outward = 1 if side == "L" else -1          # field side = away from the track axis
+    nb = int(np.ceil((edge_margin + width) / bin_size))
+    j = k0
+    while True:
+        if (j + nb >= len(sm)) if outward > 0 else (j - nb < 0):
+            raise RuntimeError(f"rail {side}: no flat running surface of {1e3 * (edge_margin + width):.0f} mm "
+                               f"on the field side of the groove; check the clip and the band width")
+        w = raw[j:j + nb + 1] if outward > 0 else raw[j - nb:j + 1]
+        if np.isfinite(w).all() and np.ptp(w) <= flat_tol:
+            break
+        j += outward
+    if outward > 0:
+        g_edge = qb[j]
+        lo, hi = g_edge + edge_margin, g_edge + edge_margin + width
+    else:
+        g_edge = qb[j + 1]
+        lo, hi = g_edge - edge_margin - width, g_edge - edge_margin
+    profile = dict(q=centers.tolist(), count=cnt.tolist(), median_dz=np.nan_to_num(med, nan=0).tolist())
+    return RunningBand(side, coeffs.tolist(), float(g_edge), float(lo), float(hi), profile)
+
+
+def _running_median(a, k):
+    """Running median over k bins, ignoring NaN."""
+    h = k // 2
+    out = np.full(len(a), np.nan)
+    for i in range(len(a)):
+        w = a[max(0, i - h):i + h + 1]
+        w = w[np.isfinite(w)]
+        if len(w):
+            out[i] = np.median(w)
+    return out
+
+
+def _runs(mask):
+    """(start, end) index pairs of the contiguous True runs of a boolean array."""
     runs, start = [], None
-    for k, g in enumerate(np.append(groove, False)):
+    for k, g in enumerate(np.append(mask, False)):
         if g and start is None:
             start = k
         elif not g and start is not None:
             runs.append((start, k - 1)); start = None
-    a, b = max(runs, key=lambda r: r[1] - r[0])
-    outward = 1.0 if side == "L" else -1.0     # field side = away from the track axis
-    if outward > 0:
-        g_edge = qb[b + 1]
-        lo, hi = g_edge + edge_margin, g_edge + edge_margin + width
-    else:
-        g_edge = qb[a]
-        lo, hi = g_edge - edge_margin - width, g_edge - edge_margin
-    profile = dict(q=centers.tolist(), count=cnt.tolist(), median_dz=np.nan_to_num(med, nan=0).tolist())
-    return RunningBand(side, coeffs.tolist(), float(g_edge), float(lo), float(hi), profile)
+    return runs
 
 
 # --------------------------------------------------------------------------- local surface fit
@@ -262,6 +358,102 @@ def block_variance_factor(ds, resid, n_blocks=4):
 
 
 # --------------------------------------------------------------------------- segment metrics (WP4)
+@dataclass
+class Segment:
+    """Running-band points of one rail segment [s_from, s_to) and their plane fit."""
+    rail: str
+    s_from: float
+    s_to: float
+    n_raw: int
+    full: bool             # the rail clip covers the whole segment length (no partial end segment)
+    width: float           # band width [m]
+    ds: np.ndarray         # station relative to the segment centre [m]
+    dq: np.ndarray         # lateral offset relative to the band centre [m]
+    pts: np.ndarray        # xyz of the band points
+    fit: PlaneFit | None   # None if too few points
+
+
+def band_segments(pts, s, q, band: RunningBand, seg_len=0.5, min_points=10):
+    """Cut the running band of one rail into segments of length seg_len and fit a plane to each."""
+    m = band.mask(s, q)
+    P, S, Q = pts[m], s[m], band.q_rel(s[m], q[m])
+    qc = 0.5 * (band.q_lo + band.q_hi)
+    s_lo, s_hi = s.min(), s.max()        # extent of the whole clip, not only of the band
+    out = []
+    for s0 in np.arange(np.floor(S.min() / seg_len) * seg_len, S.max(), seg_len):
+        w = (S >= s0) & (S < s0 + seg_len)
+        n_raw = int(w.sum())
+        ds, dq = S[w] - (s0 + seg_len / 2), Q[w] - qc
+        fit = fit_plane(ds, dq, P[w, 2]) if n_raw >= min_points else None
+        out.append(Segment(band.side, float(s0), float(s0 + seg_len), n_raw,
+                           bool(s_lo <= s0 and s_hi >= s0 + seg_len), band.q_hi - band.q_lo,
+                           ds, dq, P[w], fit))
+    return out
+
+
+def segment_geometry(seg: Segment, origin, axis: TrackAxis):
+    """Range, incidence angle and horizontal angle to the track of one fitted segment.
+
+    The beam is the line from the scanner origin to the centroid of the inliers.
+    Incidence = angle between beam and the normal of the fitted plane
+    (0 deg = perpendicular hit); horizontal angle = angle between the horizontal
+    beam direction and the track (0 deg = looking along the rail).
+    """
+    fit = seg.fit
+    c = seg.pts[fit.inlier].mean(axis=0)
+    beam = c - np.asarray(origin, float)
+    rng = float(np.linalg.norm(beam))
+    t = axis.direction_at(None, c[None, :2])[0]
+    nrm_xy = np.array([-t[1], t[0]])
+    # plane normal in xyz from slopes along s (c1) and q (c2)
+    normal = np.array([-fit.coef[1] * t[0] - fit.coef[2] * nrm_xy[0],
+                       -fit.coef[1] * t[1] - fit.coef[2] * nrm_xy[1], 1.0])
+    normal /= np.linalg.norm(normal)
+    bh = beam[:2] / np.linalg.norm(beam[:2])
+    return dict(
+        x=float(c[0]), y=float(c[1]), z=float(c[2]),
+        range_m=rng, horiz_dist_m=float(np.linalg.norm(beam[:2])), height_diff_m=float(-beam[2]),
+        incidence_deg=float(np.degrees(np.arccos(abs(beam @ normal) / rng))),
+        horiz_angle_deg=float(np.degrees(np.arccos(min(1.0, abs(bh @ t))))),
+    )
+
+
+def density_metrics(seg: Segment, cell=0.005):
+    """Point density of one segment on the running band.
+
+    density = inliers per band area (the band is nearly horizontal, so the
+    horizontal area equals the surface area to < 0.1 %), mean spacing =
+    1 / sqrt(density), completeness = share of occupied cell x cell grid cells.
+    """
+    fit = seg.fit
+    seg_len = seg.s_to - seg.s_from
+    ix = np.floor((seg.ds[fit.inlier] + seg_len / 2) / cell).astype(int)
+    iy = np.floor((seg.dq[fit.inlier] + seg.width / 2) / cell).astype(int)
+    n_cells = int(np.ceil(seg_len / cell) * np.ceil(seg.width / cell))
+    dens = fit.n / (seg_len * seg.width * 1e4)
+    return dict(density_pts_cm2=dens, mean_spacing_mm=10.0 / np.sqrt(dens),
+                completeness=len(set(zip(ix, iy))) / n_cells)
+
+
+def noise_metrics(seg: Segment):
+    """Point-cloud noise of one segment: scatter of the points about the fitted plane.
+
+    sigma_pc = sqrt(r'r / (n - 3)) of the vertical residuals (= residuals normal
+    to the nearly horizontal running surface) with its 95 % chi-square CI,
+    robust sigma from the MAD, outlier share, block variance factor and the
+    formal precision of the segment height.
+    """
+    fit = seg.fit
+    lo, hi = sigma_ci(fit.sigma, fit.n - 3)
+    return dict(
+        outlier_share=fit.n_out / seg.n_raw,
+        sigma_pc_mm=fit.sigma * 1e3, sigma_pc_ci_lo_mm=lo * 1e3, sigma_pc_ci_hi_mm=hi * 1e3,
+        sigma_mad_mm=fit.sigma_mad * 1e3,
+        var_factor=block_variance_factor(seg.ds[fit.inlier], fit.resid[fit.inlier]),
+        sigma_z_formal_mm=fit.sigma_c0 * 1e3,
+    )
+
+
 def segment_metrics(pts, s, q, band: RunningBand, origin, axis: TrackAxis,
                     seg_len=0.5, cell=0.005, label=None):
     """Point-cloud quality per rail segment of length seg_len on the running band.
@@ -272,56 +464,15 @@ def segment_metrics(pts, s, q, band: RunningBand, origin, axis: TrackAxis,
     formal height precision, range, incidence angle and horizontal angle
     between line of sight and track.
     """
-    m = band.mask(s, q)
-    P, S, Q = pts[m], s[m], band.q_rel(s[m], q[m])
-    width = band.q_hi - band.q_lo
-    qc = 0.5 * (band.q_lo + band.q_hi)
-    origin = np.asarray(origin, float)
     rows = []
-    for s0 in np.arange(np.floor(S.min() / seg_len) * seg_len, S.max(), seg_len):
-        w = (S >= s0) & (S < s0 + seg_len)
-        n_raw = int(w.sum())
-        row = dict(label=label, rail=band.side, s_from=s0, s_to=s0 + seg_len, n_raw=n_raw)
-        if n_raw < 10:
-            rows.append(row); continue
-        ds, dq, z = S[w] - (s0 + seg_len / 2), Q[w] - qc, P[w, 2]
-        fit = fit_plane(ds, dq, z)
-        if fit is None:
-            rows.append(row); continue
-        # completeness: occupied cells of a cell x cell grid over the band
-        ix = np.floor((ds + seg_len / 2) / cell).astype(int)
-        iy = np.floor((dq + width / 2) / cell).astype(int)
-        n_cells = int(np.ceil(seg_len / cell) * np.ceil(width / cell))
-        occupied = len(set(zip(ix[fit.inlier], iy[fit.inlier])))
-        # geometry: centroid, beam direction, surface normal
-        c = P[w][fit.inlier].mean(axis=0)
-        beam = c - origin
-        rng = float(np.linalg.norm(beam))
-        t = axis.direction_at(None, c[None, :2])[0]
-        nrm_xy = np.array([-t[1], t[0]])
-        # plane normal in xyz from slopes along s (c1) and q (c2)
-        normal = np.array([-fit.coef[1] * t[0] - fit.coef[2] * nrm_xy[0],
-                           -fit.coef[1] * t[1] - fit.coef[2] * nrm_xy[1], 1.0])
-        normal /= np.linalg.norm(normal)
-        inc = float(np.degrees(np.arccos(abs(beam @ normal) / rng)))
-        bh = beam[:2] / np.linalg.norm(beam[:2])
-        alpha = float(np.degrees(np.arccos(min(1.0, abs(bh @ t)))))  # 0 deg = looking along the rail
-        lo, hi = sigma_ci(fit.sigma, fit.n - 3)
-        row.update(
-            n=fit.n, outlier_share=fit.n_out / n_raw,
-            density_pts_cm2=fit.n / (seg_len * width * 1e4),
-            mean_spacing_mm=10.0 / np.sqrt(fit.n / (seg_len * width * 1e4)),
-            completeness=occupied / n_cells,
-            sigma_pc_mm=fit.sigma * 1e3, sigma_pc_ci_lo_mm=lo * 1e3, sigma_pc_ci_hi_mm=hi * 1e3,
-            sigma_mad_mm=fit.sigma_mad * 1e3,
-            var_factor=block_variance_factor(ds[fit.inlier], fit.resid[fit.inlier]),
-            sigma_z_formal_mm=fit.sigma_c0 * 1e3,
-            range_m=rng, horiz_dist_m=float(np.linalg.norm(beam[:2])),
-            incidence_deg=inc, horiz_angle_deg=alpha,
-        )
+    for seg in band_segments(pts, s, q, band, seg_len):
+        row = dict(label=label, rail=seg.rail, s_from=seg.s_from, s_to=seg.s_to, n_raw=seg.n_raw,
+                   full_segment=seg.full)
+        if seg.fit is not None:
+            row.update(n=seg.fit.n, **density_metrics(seg, cell), **noise_metrics(seg),
+                       **segment_geometry(seg, origin, axis))
         rows.append(row)
     return rows
-
 
 # --------------------------------------------------------------------------- rail heights and geometry (WP5)
 def rail_heights(pts, s, q, band: RunningBand, stations, half_window=0.25):
