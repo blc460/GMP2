@@ -64,6 +64,70 @@ def plot_vs_range_incidence(df, bins, value, ylabel, path, title, models=None, l
     plt.close(fig)
 
 
+def plot_height_consistency(df, bins, path, title):
+    """Two panels: empirical vs formal sigma_z vs range and vs incidence angle, one colour per scanner.
+
+    Dots = |e| of the segments, solid line with band = bin RMS of e (empirical
+    sigma_z) with 95 % CI, dashed = bin RMS of the formal sigma_z times sqrt(VF).
+    """
+    styles = scanner_styles(df["scanner"])
+    floor = 0.3 * np.nanmin(bins["sigma_formal_vf_mm"])   # |e| near 0 would stretch the log axis
+    fig, axs = plt.subplots(1, 2, figsize=(11, 4.4), sharey=True)
+    for ax, (x, by, xlabel, xmed) in zip(axs, (
+            ("range_m", "range", "measurement distance [m]", "range_median_m"),
+            ("incidence_deg", "incidence", "angle of incidence [deg]", "incidence_median_deg"))):
+        for sc, (color, mk) in styles.items():
+            d = df[df["scanner"] == sc]
+            n_set = d["setup"].nunique()
+            ax.scatter(d[x], d["abs_e_mm"].clip(lower=floor), s=12, marker=mk, color=color, alpha=0.35, lw=0,
+                       label=f"{sc} ({n_set} setup{'s' if n_set > 1 else ''}, {len(d)} segments)")
+            b = bins[(bins["scanner"] == sc) & (bins["by"] == by) & (bins["n_used"] >= 2)].sort_values(xmed)
+            ax.fill_between(b[xmed], b["sigma_emp_ci_lo_mm"], b["sigma_emp_ci_hi_mm"], color=color, alpha=0.15,
+                            lw=0)
+            ax.plot(b[xmed], b["sigma_emp_mm"], "-", marker=mk, color=color, lw=2, ms=8,
+                    markeredgecolor="white", markeredgewidth=1)
+            ax.plot(b[xmed], b["sigma_formal_vf_mm"], "--", color=color, lw=1.2)
+        ax.set_xlabel(xlabel)
+        ax.set_yscale("log")
+        _style(ax)
+    axs[0].set_ylabel("rail height error [mm]")
+    h, l = axs[0].get_legend_handles_labels()
+    h += [plt.Line2D([], [], color="grey", lw=2, marker="o", markeredgecolor="white"),
+          plt.Line2D([], [], color="grey", lw=1.2, ls="--")]
+    l += ["empirical σ_z per bin (band: 95 % CI)", "formal σ_z · √VF"]
+    fig.legend(h, l, loc="lower center", ncol=min(len(l), 4), fontsize=8, frameon=False)
+    fig.suptitle(title)
+    fig.tight_layout(rect=(0, 0.08 + 0.04 * (len(l) > 4), 1, 1))
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+
+
+def plot_height_profile(seg, cross, path, label):
+    """Normalised leave-one-out residual e along the track per rail and for the cross level."""
+    fig, axs = plt.subplots(2, 1, figsize=(10, 5), sharex=True)
+    for j, r in enumerate(("L", "R")):
+        d = seg[seg["rail"] == r].sort_values("s_mid")
+        axs[0].plot(d["s_mid"], d["e_mm"], ".-", ms=4, lw=1, color=COLORS[j], label=f"rail {r}")
+        axs[0].fill_between(d["s_mid"], -2 * d["sigma_formal_vf_mm"], 2 * d["sigma_formal_vf_mm"],
+                            color=COLORS[j], alpha=0.15, lw=0)
+    axs[0].set_ylabel("height residual e [mm]")
+    axs[0].legend(fontsize=8, title="band: ±2 formal σ_z · √VF", title_fontsize=7)
+    if len(cross):
+        d = cross.sort_values("s_mid")
+        axs[1].plot(d["s_mid"], d["e_mm"], ".-", ms=4, lw=1, color=COLORS[2])
+        axs[1].fill_between(d["s_mid"], -2 * d["sigma_formal_vf_mm"], 2 * d["sigma_formal_vf_mm"],
+                            color=COLORS[2], alpha=0.15, lw=0)
+    axs[1].set_ylabel("cross level residual e [mm]\n(L − R)")
+    axs[1].set_xlabel("station along the track s [m]")
+    for ax in axs:
+        ax.axhline(0, color="0.3", lw=0.8)
+        _style(ax)
+    axs[0].set_title(f"{label}: leave-one-out residuals of the segment heights", fontsize=10)
+    fig.tight_layout()
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+
+
 def plot_railhead_check(p, path):
     """Lateral profile of both railheads with the measured head edges and the band used."""
     fig, axs = plt.subplots(2, 2, figsize=(9, 5), sharex="col")

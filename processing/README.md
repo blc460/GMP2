@@ -4,7 +4,7 @@ Two parts, both Python ≥ 3.10 (packages in `requirements.txt` at the repositor
 
 | folder | input | what it delivers |
 |---|---|---|
-| `railhead/` | clouds cropped to the **rail heads** (two parallel strips) | point density and point-cloud noise **per scanner**, vs measurement distance and angle of incidence |
+| `railhead/` | clouds cropped to the **rail heads** (two parallel strips) | point density, point-cloud noise and empirical rail height precision **per scanner**, vs measurement distance and angle of incidence |
 | `trackqc/` | clips of the rail head **incl. groove** | rail heights, cant, twist, versine with variance propagation; empirical check; operational limits |
 
 `railhead/` reuses the numerical building blocks of `trackqc/core.py` (rail split, track axis, plane fit,
@@ -61,9 +61,10 @@ python railhead/00_prepare.py --list datasets.csv
 
 python railhead/01_point_density.py                          # all prepared scans
 python railhead/02_point_noise.py --scanner FARO RTC360      # only these scanners
+python railhead/03_height_consistency.py --window 4          # empirical sigma_z from the height profile
 ```
 
-`00_prepare.py` runs once per scan; 01 and 02 read all prepared scans in `results/railhead/00_prepare/`
+`00_prepare.py` runs once per scan; 01, 02 and 03 read all prepared scans in `results/railhead/00_prepare/`
 and evaluate them per scanner. `-h` on any script shows its options and method.
 
 ### Scripts
@@ -73,6 +74,7 @@ and evaluate them per scanner. `-h` on any script shows its options and method.
 | `00_prepare.py` | Split the cloud into left/right rail at the gap between them; track axis = mean of both rail centre lines (cubic); stations s and lateral offset q for every point. Railhead band per rail: centre line q_rail(s), head edges = 0.5 % / 99.5 % quantiles of q − q_rail, band = head minus `--edge-trim` (5 mm) on both sides, so the rounded head corners do not enter the plane fits. Warns if a "railhead" is wider than 100 mm (clip not cropped). |
 | `01_point_density.py` | Per 0.5 m segment (only segments the clip covers completely): inlier points per cm² of the band, mean spacing 1/√density, completeness (occupied 5 mm cells). Per scanner: model density = k·cos θ / r² → effective angular step δ = 1/√k (compare with the resolution setting); power laws ln ρ vs ln r (expected slope −3 for one instrument height) and vs ln cos θ. |
 | `02_point_noise.py` | Per 0.5 m segment (≥ 30 inliers): plane fit with 3σ (MAD) outlier rejection, σ_pc = noise normal to the railhead with 95 % χ² CI, robust σ (MAD), outlier share, block variance factor. σ_range_equiv = σ_pc / cos θ = range noise if all noise were along the beam (compare with the manufacturer's spec; an upper bound at grazing incidence). Pooled σ per scanner, bin, rail and setup. Fits: σ_pc as power law of r and of cos θ (exponent 1 for pure beam noise), σ_range_equiv linear in r and in θ. |
+| `03_height_consistency.py` | Rail height per 0.5 m segment (plane value at segment and band centre, as `trackqc.core.rail_heights`) with formal σ_z = σ_pc/√n (and × √VF). Leave-one-out: a polynomial (`--degree` 2) through the neighbouring heights within ±`--window`/2 predicts z_i; e_i = (z_i − ẑ_i)/√(1 + h_i) with h_i the prediction variance factor. Empirical σ_z = RMS(e) with 95 % χ² CI and robust σ (MAD), per scanner, rail, setup and bin; ratio empirical / formal. The same for the cross level L − R (tilt cancels): σ_cross/√2 is a second σ_z estimate. Contains the rail's own short-wave unevenness (upper bound for the scanner); constant or smoothly varying errors (levelling, vertical angle, range offset, registration) are absorbed and not seen. |
 | `shared/` | `config.py` defaults and common options, `data.py` reading, railhead band, prepared files, `segments.py` segment table, `stats.py` bin tables, fits, result files, `plots.py` plots |
 
 Range = distance scanner origin → centroid of the segment inliers; incidence θ = angle between that beam
@@ -86,11 +88,13 @@ and the normal of the fitted plane (0° = perpendicular); `horiz_angle_deg` = an
 | `--list` | 00 | – | list file instead of cloud paths |
 | `--edge-trim` | 00 | 0.005 m | margin removed at both railhead edges |
 | `--results` | all | `processing/results/railhead` | results folder |
-| `--scanner` | 01, 02 | all | evaluate only these scanners |
-| `--seg-len` | 01, 02 | 0.5 m | segment length along the rail (WP4) |
-| `--range-bin`, `--incidence-bin` | 01, 02 | 1 m, 5° | bin widths of tables and plots |
+| `--scanner` | 01, 02, 03 | all | evaluate only these scanners |
+| `--seg-len` | 01, 02, 03 | 0.5 m | segment length along the rail (WP4) |
+| `--range-bin`, `--incidence-bin` | 01, 02, 03 | 1 m, 5° | bin widths of tables and plots |
 | `--cell` | 01 | 0.005 m | grid cell for completeness |
-| `--min-points` | 02 | 30 | minimum inliers per segment |
+| `--min-points` | 02, 03 | 30 | minimum inliers per segment |
+| `--window` | 03 | 4 m | neighbourhood along the rail for the leave-one-out polynomial |
+| `--degree` | 03 | 2 | degree of that polynomial (2 = constant vertical curvature) |
 
 ### Output
 
@@ -109,6 +113,12 @@ results/railhead/
     noise_segments.csv, noise_bins.csv, noise_summary.csv, noise_fit.json
     noise.png                   sigma_pc vs distance and vs incidence
     noise_range_equiv.png       sigma_pc / cos(incidence) vs distance and vs incidence
+  03_height_consistency/
+    height_segments.csv         one row per rail segment: height, prediction, residual e, formal sigma_z
+    height_cross.csv            one row per station with both rails: cross level and its residual
+    height_bins.csv, height_summary.csv, height_fit.json   empirical vs formal sigma_z (series height | cross)
+    height.png                  empirical (bin RMS, 95 % CI) and formal sigma_z vs distance and vs incidence
+    <label>_profile.png         residuals along the track per rail and for the cross level
 ```
 
 Plots: dots = segments, line with band = bin median and interquartile range, dashed = fit; one colour
@@ -116,7 +126,7 @@ and marker per scanner (at most 8 scanners per plot, otherwise filter with `--sc
 
 ### Adding a criterion
 
-One more script `03_<criterion>.py` with the same pattern as 01/02:
+One more script `04_<criterion>.py` with the same pattern as 01/02:
 `data.load_prepared` → `segments.segment_table(preps, metric)` with a per-segment `metric(seg) -> dict`
 → `stats.bin_table` → `stats.write_results` → `plots.plot_vs_range_incidence`.
 
