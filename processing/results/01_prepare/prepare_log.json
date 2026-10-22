@@ -1,0 +1,40 @@
+{
+  "scans": [
+    "RTC360_E004"
+  ],
+  "inputs": [
+    {
+      "path": "..\\pointclouds\\track-test.e57",
+      "sha256": "c08edd8a7136217887b984022bb0471804f358eb3fe11ba5f6c41235d1ec3c94"
+    }
+  ],
+  "provenance": {
+    "script": "01_prepare.py",
+    "options": {
+      "clouds": [
+        "../pointclouds/track-test.e57"
+      ],
+      "list": null,
+      "scanner": "RTC360",
+      "setup": "E004",
+      "origin": null,
+      "band": "railhead",
+      "edge_trim": 0.005,
+      "band_width": 0.03,
+      "edge_margin": 0.005,
+      "refit_axis": false,
+      "results": "D:\\cblase\\GMP2\\processing\\results"
+    },
+    "git_commit": "f3e3494",
+    "uncommitted_changes": true,
+    "run_utc": "2026-10-22T14:26:15+00:00",
+    "python": "3.14.8",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "packages": {
+      "numpy": "2.5.4",
+      "scipy": "1.18.1",
+      "pandas": "3.0.6",
+      "matplotlib": "3.11.2"
+    }
+  }
+}

@@ -1,0 +1,138 @@
+{
+  "criterion": "noise",
+  "settings": {
+    "results": "D:\\cblase\\GMP2\\processing\\results",
+    "scans": [
+      "RTC360_E004"
+    ],
+    "seg_len": 0.5,
+    "min_points": 30,
+    "range_bin": 1.0,
+    "incidence_bin": 5.0
+  },
+  "provenance": {
+    "script": "03_point_noise.py",
+    "options": {
+      "results": "D:\\cblase\\GMP2\\processing\\results",
+      "scanner": null,
+      "seg_len": 0.5,
+      "range_bin": 1.0,
+      "incidence_bin": 5.0,
+      "min_points": 30
+    },
+    "git_commit": "f3e3494",
+    "uncommitted_changes": true,
+    "run_utc": "2026-10-22T14:26:24+00:00",
+    "python": "3.14.8",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "packages": {
+      "numpy": "2.5.4",
+      "scipy": "1.18.1",
+      "pandas": "3.0.6",
+      "matplotlib": "3.11.2"
+    }
+  },
+  "scanners": {
+    "RTC360": {
+      "n_setups": 1,
+      "setups": [
+        "E004"
+      ],
+      "n_segments": 51,
+      "n_points": 62829,
+      "range_m": [
+        6.958109006594782,
+        10.336447992645985
+      ],
+      "incidence_deg": [
+        45.16597816952679,
+        63.70220795326082
+      ],
+      "corr_range_incidence": 0.9082213130188584,
+      "power_law_range": {
+        "formula": "ln(sigma_pc_mm) = a + b ln(range_m)",
+        "a": -1.2775214022504937,
+        "b": 0.21027045009325293,
+        "se_a": 0.3315409963666866,
+        "se_b": 0.1576121758091235,
+        "r2": 0.03504981838459087,
+        "n": 51,
+        "rmse": 0.11815923225610642
+      },
+      "power_law_cos_incidence": {
+        "formula": "ln(sigma_pc_mm) = a + b ln(cos(incidence))",
+        "expected_b_beam_noise": 1.0,
+        "a": -1.0789718253630367,
+        "b": -0.4928284891829221,
+        "se_a": 0.06559249806257905,
+        "se_b": 0.1294878103439502,
+        "r2": 0.2281703525432549,
+        "n": 51,
+        "rmse": 0.10567589694846327
+      },
+      "range_equiv_linear_range": {
+        "formula": "sigma_range_equiv_mm = a + b * range_m",
+        "a": -0.21163810752747472,
+        "b": 0.11396981234051425,
+        "se_a": 0.15948597655317506,
+        "se_b": 0.01929361116984835,
+        "r2": 0.4159306692761813,
+        "n": 51,
+        "rmse": 0.12126651720230056
+      },
+      "range_equiv_linear_incidence": {
+        "formula": "sigma_range_equiv_mm = a + b * incidence_deg",
+        "a": -0.7412323045155711,
+        "b": 0.028227202316362398,
+        "se_a": 0.12578826158649548,
+        "se_b": 0.002411461417734338,
+        "r2": 0.736583475574538,
+        "n": 51,
+        "rmse": 0.08143858351989268
+      },
+      "per_rail": {
+        "L": {
+          "sigma_pooled_mm": 0.404901898727569,
+          "sigma_pooled_ci_lo_mm": 0.4010535228903601,
+          "sigma_pooled_ci_hi_mm": 0.40882536820742615,
+          "sigma_range_equiv_pooled_mm": 0.6510186698811655,
+          "sigma_mad_mm_median": 0.4236364340294826,
+          "outlier_share_median": 0.002036659877800407,
+          "var_factor_median": 3.018319529249027
+        },
+        "R": {
+          "sigma_pooled_mm": 0.45782034814255884,
+          "sigma_pooled_ci_lo_mm": 0.4547386773580794,
+          "sigma_pooled_ci_hi_mm": 0.46094436475561473,
+          "sigma_range_equiv_pooled_mm": 0.7379419400053193,
+          "sigma_mad_mm_median": 0.47166516471852393,
+          "outlier_share_median": 0.00293002518632238,
+          "var_factor_median": 1.3650453745143358
+        }
+      },
+      "per_setup": {
+        "E004": {
+          "sigma_pooled_mm": 0.4409160816432154,
+          "sigma_pooled_ci_lo_mm": 0.4384887825895119,
+          "sigma_pooled_ci_hi_mm": 0.4433705913241614,
+          "sigma_range_equiv_pooled_mm": 0.710198137620568,
+          "sigma_mad_mm_median": 0.4515578740644117,
+          "outlier_share_median": 0.002888781896966779,
+          "var_factor_median": 2.1229243229412478
+        }
+      },
+      "summary": {
+        "sigma_pooled_mm": 0.4409160816432154,
+        "sigma_pooled_ci_lo_mm": 0.4384887825895119,
+        "sigma_pooled_ci_hi_mm": 0.4433705913241614,
+        "sigma_range_equiv_pooled_mm": 0.710198137620568,
+        "sigma_mad_mm_median": 0.4515578740644117,
+        "outlier_share_median": 0.002888781896966779,
+        "var_factor_median": 2.1229243229412478,
+        "median": 0.4347702593674692,
+        "p05": 0.3521096757049811,
+        "p95": 0.5290374991657889
+      }
+    }
+  }
+}

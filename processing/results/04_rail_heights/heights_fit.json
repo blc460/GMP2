@@ -1,0 +1,164 @@
+{
+  "criterion": "heights",
+  "settings": {
+    "results": "D:\\cblase\\GMP2\\processing\\results",
+    "scans": [
+      "RTC360_E004"
+    ],
+    "seg_len": 0.5,
+    "min_points": 30,
+    "window": 4.0,
+    "degree": 2,
+    "range_bin": 1.0,
+    "incidence_bin": 5.0,
+    "speed_class": "48-60",
+    "requirements_mm": {
+      "K2": 1.22,
+      "K3.6": 0.67
+    },
+    "mad_to_sigma": 1.4826
+  },
+  "provenance": {
+    "script": "04_rail_heights.py",
+    "options": {
+      "results": "D:\\cblase\\GMP2\\processing\\results",
+      "scanner": null,
+      "seg_len": 0.5,
+      "range_bin": 1.0,
+      "incidence_bin": 5.0,
+      "min_points": 30,
+      "window": 4.0,
+      "degree": 2,
+      "speed_class": "48-60"
+    },
+    "git_commit": "f3e3494",
+    "uncommitted_changes": true,
+    "run_utc": "2026-10-22T14:29:08+00:00",
+    "python": "3.14.8",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "packages": {
+      "numpy": "2.5.4",
+      "scipy": "1.18.1",
+      "pandas": "3.0.6",
+      "matplotlib": "3.11.2"
+    }
+  },
+  "scanners": {
+    "RTC360": {
+      "n_setups": 1,
+      "setups": [
+        "E004"
+      ],
+      "n_segments": 43,
+      "n_points": 58364,
+      "range_m": [
+        6.958109006594782,
+        9.700554010976644
+      ],
+      "incidence_deg": [
+        45.16597816952679,
+        61.349747615587496
+      ],
+      "corr_range_incidence": 0.8659238329965256,
+      "height": {
+        "n_used": 43,
+        "sigma_z_emp_mm": 0.07861770960871182,
+        "sigma_z_emp_ci_lo_mm": 0.05846086402392428,
+        "sigma_z_emp_ci_hi_mm": 0.12003056924423657,
+        "sigma_z_emp_rms_mm": 0.09935934073101207,
+        "sigma_z_emp_rms_ci_lo_mm": 0.082092956981237,
+        "sigma_z_emp_rms_ci_hi_mm": 0.12589082229723422,
+        "mean_e_mm": -0.0004694144361537656,
+        "sigma_z_formal_rms_mm": 0.013063717158023637,
+        "sigma_z_mad_rms_mm": 0.013474816534257479,
+        "sigma_z_station_rms_mm": 0.023082797814876047,
+        "ratio_emp_station": 3.405900369583686,
+        "sigma_sys_mm": 0.07515270260714044
+      },
+      "per_rail": {
+        "L": {
+          "n_used": 21,
+          "sigma_z_emp_mm": 0.10202192206792213,
+          "sigma_z_emp_ci_lo_mm": 0.06852166028387019,
+          "sigma_z_emp_ci_hi_mm": 0.19853276042916462,
+          "sigma_z_emp_rms_mm": 0.10432067812878833,
+          "sigma_z_emp_rms_ci_lo_mm": 0.08025925482278264,
+          "sigma_z_emp_rms_ci_hi_mm": 0.14908099734755942,
+          "mean_e_mm": 0.0064778239720413786,
+          "sigma_z_formal_rms_mm": 0.013887440440014148,
+          "sigma_z_mad_rms_mm": 0.014295190948941156,
+          "sigma_z_station_rms_mm": 0.025399420523928178,
+          "ratio_emp_station": 4.016702742167277,
+          "sigma_sys_mm": 0.09880962513582284
+        },
+        "R": {
+          "n_used": 22,
+          "sigma_z_emp_mm": 0.05589477419722438,
+          "sigma_z_emp_ci_lo_mm": 0.03781709128460091,
+          "sigma_z_emp_ci_hi_mm": 0.10659932972951741,
+          "sigma_z_emp_rms_mm": 0.09438053964507508,
+          "sigma_z_emp_rms_ci_lo_mm": 0.07299342298118816,
+          "sigma_z_emp_rms_ci_hi_mm": 0.1335816289517687,
+          "mean_e_mm": -0.007100869280340036,
+          "sigma_z_formal_rms_mm": 0.012225772546466271,
+          "sigma_z_mad_rms_mm": 0.012642168070626273,
+          "sigma_z_station_rms_mm": 0.020630215088781982,
+          "ratio_emp_station": 2.709364587653673,
+          "sigma_sys_mm": 0.05194824355018456
+        }
+      },
+      "per_setup": {
+        "E004": {
+          "n_used": 43,
+          "sigma_z_emp_mm": 0.07861770960871182,
+          "sigma_z_emp_ci_lo_mm": 0.05846086402392428,
+          "sigma_z_emp_ci_hi_mm": 0.12003056924423657,
+          "sigma_z_emp_rms_mm": 0.09935934073101207,
+          "sigma_z_emp_rms_ci_lo_mm": 0.082092956981237,
+          "sigma_z_emp_rms_ci_hi_mm": 0.12589082229723422,
+          "mean_e_mm": -0.0004694144361537656,
+          "sigma_z_formal_rms_mm": 0.013063717158023637,
+          "sigma_z_mad_rms_mm": 0.013474816534257479,
+          "sigma_z_station_rms_mm": 0.023082797814876047,
+          "ratio_emp_station": 3.405900369583686,
+          "sigma_sys_mm": 0.07515270260714044
+        }
+      },
+      "cross_level": {
+        "n_used": 21,
+        "sigma_z_emp_mm": 0.11164257839818567,
+        "sigma_z_emp_ci_lo_mm": 0.07498324551386908,
+        "sigma_z_emp_ci_hi_mm": 0.21725437848607523,
+        "sigma_z_emp_rms_mm": 0.17464075905241355,
+        "sigma_z_emp_rms_ci_lo_mm": 0.13436010419648375,
+        "sigma_z_emp_rms_ci_hi_mm": 0.24957294185651807,
+        "mean_e_mm": 0.007831807850585982,
+        "sigma_z_formal_rms_mm": 0.01812162137256369,
+        "sigma_z_mad_rms_mm": 0.01870065138637708,
+        "sigma_z_station_rms_mm": 0.03161940283082787,
+        "ratio_emp_station": 3.530825012588089,
+        "sigma_sys_mm": 0.1070713718788401,
+        "sigma_z_from_cross_mm": 0.07894322425450785
+      },
+      "station": {
+        "median_sigma_z_formal_mm": 0.012631293985568108,
+        "median_sigma_z_mad_mm": 0.012695095434307472,
+        "median_sigma_z_station_mm": 0.019078724765940035,
+        "p95_sigma_z_station_mm": 0.039815041146677464,
+        "median_var_factor": 2.1229243229412478
+      },
+      "requirements": {
+        "K2": {
+          "sigma_z_req_mm": 1.22,
+          "share_stations_meeting": 1.0,
+          "empirical_meets": true
+        },
+        "K3.6": {
+          "sigma_z_req_mm": 0.67,
+          "share_stations_meeting": 1.0,
+          "empirical_meets": true
+        }
+      }
+    }
+  }
+}

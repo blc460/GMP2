@@ -1,0 +1,72 @@
+{
+  "settings": {
+    "results": "D:\\cblase\\GMP2\\processing\\results",
+    "seg_len": 0.5,
+    "twist_base_m": 5.0,
+    "versine_chord_m": 10.0,
+    "b0_m": 1.0,
+    "b_m": "measured",
+    "speed_class": "48-60",
+    "attention_values": {
+      "T_vpf_mm": 3.0,
+      "T_N_permille": 1.0
+    },
+    "K": {
+      "K2": 2.0,
+      "K3.6": 3.605
+    }
+  },
+  "provenance": {
+    "script": "05_track_geometry.py",
+    "options": {
+      "results": "D:\\cblase\\GMP2\\processing\\results",
+      "scanner": null,
+      "speed_class": "48-60",
+      "b": null
+    },
+    "git_commit": "f3e3494",
+    "uncommitted_changes": true,
+    "run_utc": "2026-10-22T14:29:10+00:00",
+    "python": "3.14.8",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "packages": {
+      "numpy": "2.5.4",
+      "scipy": "1.18.1",
+      "pandas": "3.0.6",
+      "matplotlib": "3.11.2"
+    }
+  },
+  "scans": {
+    "RTC360_E004": {
+      "label": "RTC360_E004",
+      "n_stations": 23,
+      "s_min_m": 0.25,
+      "s_max_m": 11.75,
+      "b_median_m": 1.0636526491940475,
+      "cant_mean_mm": -0.04076729653605574,
+      "cant_std_mm": 0.7293023232380716,
+      "n_twist": 13,
+      "twist_min_permille": -0.43943424608078574,
+      "twist_max_permille": 0.21768856111681525,
+      "n_twist_exceeding_T": 0,
+      "n_vpf": 3,
+      "vpf_min_mm": -1.678459988315808,
+      "vpf_max_mm": -1.2843327301943646,
+      "speed_class": "48-60",
+      "sigma_cant_station_median_mm": 0.029286705753819624,
+      "sigma_twist_station_median_permille": 0.008313002776246027,
+      "sigma_dvpf_station_median_mm": 0.02608116804385421,
+      "share_twist_ok_station_K2": 1.0,
+      "share_dvpf_ok_station_K2": 1.0,
+      "share_twist_ok_station_K3.6": 1.0,
+      "share_dvpf_ok_station_K3.6": 1.0,
+      "sigma_cant_emp_median_mm": 0.10936852997270476,
+      "sigma_twist_emp_median_permille": 0.030933686088223826,
+      "sigma_dvpf_emp_median_mm": 0.1007448448991009,
+      "share_twist_ok_emp_K2": 1.0,
+      "share_dvpf_ok_emp_K2": 1.0,
+      "share_twist_ok_emp_K3.6": 1.0,
+      "share_dvpf_ok_emp_K3.6": 1.0
+    }
+  }
+}

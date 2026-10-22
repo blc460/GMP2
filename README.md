@@ -1,7 +1,8 @@
 # GMP2
 Geomatics Master Project
 
-- `processing/railhead/`: numbered scripts for point density and point-cloud noise per scanner on railhead clips
-- `processing/trackqc/`: rail heights, twist and versine with precision from TLS rail clips
+- `processing/00_simulate.py` … `07_operational_limits.py`: one pipeline from rail point clouds to point
+  density, point-cloud noise, rail heights with σ_z, cant, twist, versine and operational limits
+- `processing/shared/`: functions shared by the numbered scripts
 
-Setup, usage and method: [`processing/README.md`](processing/README.md).
+Setup, usage, method and results: [`processing/README.md`](processing/README.md).

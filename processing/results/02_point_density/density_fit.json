@@ -1,0 +1,92 @@
+{
+  "criterion": "density",
+  "settings": {
+    "results": "D:\\cblase\\GMP2\\processing\\results",
+    "scans": [
+      "RTC360_E004"
+    ],
+    "seg_len": 0.5,
+    "cell": 0.005,
+    "range_bin": 1.0,
+    "incidence_bin": 5.0
+  },
+  "provenance": {
+    "script": "02_point_density.py",
+    "options": {
+      "results": "D:\\cblase\\GMP2\\processing\\results",
+      "scanner": null,
+      "seg_len": 0.5,
+      "range_bin": 1.0,
+      "incidence_bin": 5.0,
+      "cell": 0.005
+    },
+    "git_commit": "f3e3494",
+    "uncommitted_changes": true,
+    "run_utc": "2026-10-22T14:26:22+00:00",
+    "python": "3.14.8",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "packages": {
+      "numpy": "2.5.4",
+      "scipy": "1.18.1",
+      "pandas": "3.0.6",
+      "matplotlib": "3.11.2"
+    }
+  },
+  "scanners": {
+    "RTC360": {
+      "n_setups": 1,
+      "setups": [
+        "E004"
+      ],
+      "n_segments": 47,
+      "n_points": 61265,
+      "range_m": [
+        6.958109006594782,
+        10.01355959856713
+      ],
+      "incidence_deg": [
+        45.16597816952679,
+        62.71763582502272
+      ],
+      "corr_range_incidence": 0.890206125564906,
+      "model_cos_over_r2": {
+        "formula": "density = k * cos(incidence) / range^2",
+        "k_pts_cm2_m2": 1322.1595013583064,
+        "k_iqr": [
+          1256.4551006870922,
+          1381.1860305104785
+        ],
+        "angular_step_mrad": 0.27501607200979594,
+        "spacing_at_10m_normal_mm": 2.7501607200979596
+      },
+      "power_law_range": {
+        "formula": "ln(density) = a + b ln(range)",
+        "expected_b_fixed_height": -3.0,
+        "a": 9.787000784093449,
+        "b": -3.4771683352481233,
+        "se_a": 0.4980245794812534,
+        "se_b": 0.23826357538141754,
+        "r2": 0.8255669783381923,
+        "n": 47,
+        "rmse": 0.15792168474648655
+      },
+      "power_law_cos_incidence": {
+        "formula": "ln(density) = a + b ln(cos(incidence))",
+        "a": 4.011622298363884,
+        "b": 3.1003113946557925,
+        "se_a": 0.13348139499093928,
+        "se_b": 0.27248731155697437,
+        "r2": 0.7420534879597442,
+        "n": 47,
+        "rmse": 0.19204024278208173
+      },
+      "summary": {
+        "median": 13.349078041412064,
+        "p05": 6.19215491930966,
+        "p95": 21.23453863786644,
+        "median_spacing_mm": 2.7369972684451525,
+        "median_completeness": 0.9966666666666667
+      }
+    }
+  }
+}
