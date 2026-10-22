@@ -28,9 +28,9 @@
       "n_boot": 1000,
       "seed": 1
     },
-    "git_commit": "f3e3494",
+    "git_commit": "b91c1e0",
     "uncommitted_changes": true,
-    "run_utc": "2026-10-22T14:29:15+00:00",
+    "run_utc": "2026-10-22T14:34:35+00:00",
     "python": "3.14.8",
     "platform": "Windows-11-10.0.26200-SP0",
     "packages": {
