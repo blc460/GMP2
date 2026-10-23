@@ -13,6 +13,8 @@ sigma_z is estimated in two independent ways, both with the MAD:
        sigma_MAD          = 1.4826 MAD of the plane residuals (all points, outliers included)
        sigma_z,MAD        = sigma_MAD sqrt(q00),  q00 = [(A'A)^-1]_00 ~ 1/n
        sigma_z,station    = sigma_z,MAD sqrt(max(VF, 1))
+   If the heights are stored on a grid of step q (step 01), sigma_MAD is at
+   least q / sqrt(12), the std of the rounding error (column mad_at_floor).
    VF = block variance factor (03): > 1 if the residuals are correlated along
    the rail, then sqrt(q00) ~ 1/sqrt(n) is too optimistic. For comparison the
    least-squares value sigma_z,formal = sigma_pc sqrt(q00) is also given.
@@ -72,7 +74,8 @@ def height_metrics(seg):
     m = fit.noise_metrics(seg)
     vf = max(m["var_factor"], 1.0) if np.isfinite(m["var_factor"]) else 1.0
     return dict(z_m=float(f.coef[0]), q_center_m=seg.q_center, sigma_pc_mm=m["sigma_pc_mm"],
-                sigma_mad_mm=m["sigma_mad_mm"], var_factor=m["var_factor"], outlier_share=m["outlier_share"],
+                sigma_mad_mm=m["sigma_mad_mm"], mad_at_floor=m["mad_at_floor"], var_factor=m["var_factor"],
+                outlier_share=m["outlier_share"],
                 sigma_z_formal_mm=f.sigma_c0 * 1e3, sigma_z_mad_mm=f.sigma_c0_mad * 1e3,
                 sigma_z_station_mm=f.sigma_c0_mad * np.sqrt(vf) * 1e3)
 
@@ -202,7 +205,8 @@ def main():
                                      median_sigma_z_mad_mm=float(g["sigma_z_mad_mm"].median()),
                                      median_sigma_z_station_mm=float(g["sigma_z_station_mm"].median()),
                                      p95_sigma_z_station_mm=float(g["sigma_z_station_mm"].quantile(0.95)),
-                                     median_var_factor=float(g["var_factor"].median())),
+                                     median_var_factor=float(g["var_factor"].median()),
+                                     share_mad_at_quantization_floor=float(g["mad_at_floor"].mean())),
                         requirements={k: dict(sigma_z_req_mm=v,
                                               share_stations_meeting=float(g[f"station_meets_{k}"].mean()),
                                               empirical_meets=bool(ph.get("sigma_z_emp_ci_hi_mm", np.inf) <= v))

@@ -25,6 +25,8 @@
     ],
     "corridor_m": 1.6,
     "n_after_corridor": 526571,
+    "z_step_m": 0.001,
+    "z_step_source": "detected in the stored coordinates",
     "origin": [
       6.268,
       3.132,

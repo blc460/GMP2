@@ -24,6 +24,7 @@
       "class_column": null,
       "track": null,
       "corridor": 1.6,
+      "z_step": null,
       "origin_tol": 2.0,
       "band": "auto",
       "edge_trim": 0.005,
@@ -32,9 +33,9 @@
       "refit_axis": false,
       "results": "results/track-test"
     },
-    "git_commit": "6df424b",
+    "git_commit": "7a39326",
     "uncommitted_changes": true,
-    "run_utc": "2026-10-23T11:57:50+00:00",
+    "run_utc": "2026-10-23T13:11:22+00:00",
     "python": "3.14.8",
     "platform": "Windows-11-10.0.26200-SP0",
     "packages": {

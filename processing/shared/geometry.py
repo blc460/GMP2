@@ -360,3 +360,33 @@ def clip_width(s, q, quantile=config.EDGE_QUANTILE, degree=3):
     qr = q - np.polyval(np.polyfit(s, q, degree), s)
     lo, hi = np.quantile(qr, [quantile, 1 - quantile])
     return float(hi - lo)
+
+
+def grid_step(pts, steps=(1e-3, 5e-4, 2e-4, 1e-4), n_patches=60, patch=0.10, tol=0.05, share=0.9, seed=0):
+    """Storage step of the heights, if they lie on a grid (0.0 if not).
+
+    Tested in small patches (patch x patch in plan), because a slight tilt of
+    the frame shifts the grid slowly across a large cloud: in each patch the
+    phase of z / step is estimated by its circular mean, and the step counts
+    if `share` of the patch heights lie within tol * step of a grid level.
+    The largest step that holds in at least 80 % of the patches is returned.
+    Example: RTC360 data exported by REGISTER 360 store x, y, z in the scanner
+    frame in 1 mm steps.
+    """
+    rng = np.random.default_rng(seed)
+    centres = pts[rng.choice(len(pts), min(n_patches, len(pts)), replace=False)]
+    from scipy.spatial import cKDTree
+    tree = cKDTree(pts[:, :2])
+    groups = [pts[idx, 2] for idx in tree.query_ball_point(centres[:, :2], patch / 2) if len(idx) >= 30]
+    if not groups:
+        return 0.0
+    for st in steps:
+        ok = []
+        for z in groups:
+            f = z / st
+            phase = np.angle(np.mean(np.exp(2j * np.pi * f))) / (2 * np.pi)
+            d = np.abs((f - phase + 0.5) % 1.0 - 0.5)
+            ok.append(np.mean(d < tol) >= share)
+        if np.mean(ok) >= 0.8:
+            return float(st)
+    return 0.0

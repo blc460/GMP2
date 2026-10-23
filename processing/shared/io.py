@@ -48,6 +48,7 @@ class Scan:
     origin: np.ndarray     # scanner origin in the same frame
     origin_from_pose: bool = False   # origin = E57 pose translation (not given explicitly)
     cls: np.ndarray | None = None    # point class (LAS/PLY/ASCII), None if the file has none
+    raw: np.ndarray | None = None    # E57: coordinates as stored (scanner frame), for the grid test
 
 
 @dataclass
@@ -63,6 +64,11 @@ class Prepared:
     head_width: dict       # side -> measured railhead width [m] (NaN for band groove)
     band_method: str = "railhead"
     selection: dict | None = None    # class filter, track corridor, origin check of step 01
+
+    @property
+    def z_step(self):
+        """Storage step of the heights found in step 01 [m] (0: not quantized)."""
+        return float((self.selection or {}).get("z_step_m") or 0.0)
 
 
 # --------------------------------------------------------------------------- point clouds
@@ -173,8 +179,10 @@ def read_scans(src: Source, class_column=None) -> list[Scan]:
                   + (" (given)" if src.origin is not None else " (E57 pose)"))
             if _class_field(h.point_fields):
                 print(f"  note: field {_class_field(h.point_fields)} is not a standard E57 field and is not read")
+            raw = e.read_scan_raw(i)
+            raw = np.column_stack([raw["cartesianX"], raw["cartesianY"], raw["cartesianZ"]]).astype(np.float64)
             scans.append(Scan(f"{scanner}_{su}", scanner, su, str(src.path), pts, origin,
-                              src.origin is None))
+                              src.origin is None, None, raw))
         return scans
     if src.origin is None:
         raise ValueError(f"{src.path}: the scanner origin is required for non-E57 input")

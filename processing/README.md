@@ -83,20 +83,29 @@ They then share the track axis and the stations, which step 06 needs. `--scanner
    kept. Without a class field all points are used and a note is printed.
 3. **Track corridor.** With `--track`, only points within `--corridor`/2 of the polyline (in plan) and between its
    end points are kept. This cuts one track out of a junction.
-4. **Origin check.** A scanner with a constant angular step puts density ∝ cos θ / r² = h / r³ points per area
+4. **Height resolution.** RTC360 data exported by REGISTER 360 store x, y, z in the scanner frame in 1 mm steps
+   (both test clouds: 100 % of the points on the grid; the pose rotation only makes the transformed z look
+   continuous). The step q is detected in 10 cm patches of the stored coordinates (or set with `--z-step`).
+   All plane fits then use q/√12 (0.29 mm for 1 mm, the std of a uniform rounding error) as lower bound of the
+   robust σ (σ_MAD and the block variance factor), and the outlier threshold is 3σ + q/2, so the neighbouring
+   height levels are never rejected. Without this the MAD collapses to 0 when most points of a segment lie on
+   one height level: the outlier test then rejects every point off that level, the height is biased towards
+   that level and the segment looks perfectly precise. Segments where the floor applies are flagged
+   (`mad_at_floor`).
+5. **Origin check.** A scanner with a constant angular step puts density ∝ cos θ / r² = h / r³ points per area
    on a horizontal surface. The local point density (neighbours within 15 mm) of 20 000 random points is fitted
    with ln ρ = c + ln h − 3 ln r over the scanner position. If the given origin is more than `--origin-tol`
    (2 m) away in plan, the step stops, because every distance and incidence angle would be wrong. The estimated
    height is biased (weak steel returns at grazing incidence), so it is printed but not used.
-5. **Split the rails.** The cloud is projected onto every horizontal direction (0.25° steps); the direction with
+6. **Split the rails.** The cloud is projected onto every horizontal direction (0.25° steps); the direction with
    the widest empty gap between the 5 % and 95 % quantiles is the track direction, and the gap separates left and
    right rail (it must be ≥ 0.2 m).
-6. **Track axis.** For each rail a cubic polynomial of the lateral position along the track; the axis is the mean
+7. **Track axis.** For each rail a cubic polynomial of the lateral position along the track; the axis is the mean
    of both. It is fitted from the first scan, saved as `axis.json` and reused for all later scans in the same
    results folder, so they all share the same stations.
-7. **Stationing.** Every point gets its station s (arc length along the axis, Newton iteration for the foot point)
+8. **Stationing.** Every point gets its station s (arc length along the axis, Newton iteration for the foot point)
    and its lateral offset q (positive to the left). Left rail = q > 0.
-8. **Band.** The strip of each rail that all later fits use.
+9. **Band.** The strip of each rail that all later fits use.
    - `railhead` (clips ≤ 100 mm wide): rail centre line q_rail(s) as cubic polynomial; head edges = 0.5 % and
      99.5 % quantiles of q − q_rail; band = head minus 5 mm (`--edge-trim`) on both sides, so the rounded head
      corners are not fitted.
@@ -142,6 +151,7 @@ scanner analogue of a levelled point on the rail head. σ_z is estimated in two 
 |---|---|---|
 | σ_z,MAD (`sigma_z_mad_mm`) | 1.4826 · MAD(plane residuals of all points) · √q00, q00 = [(AᵀA)⁻¹]₀₀ ≈ 1/n | point noise propagated into c0 |
 | σ_z,station (`sigma_z_station_mm`) | σ_z,MAD · √max(VF, 1) | the same, corrected for correlated residuals; **lower bound** |
+| | σ_MAD ≥ q/√12 for heights stored in steps of q (step 01) | guard against a collapsed MAD |
 | σ_z,formal (`sigma_z_formal_mm`) | σ_pc · √q00 (least squares) | for comparison |
 | σ_z,emp (`sigma_z_emp_mm`) | 1.4826 · MAD(e) over a group of stations | **empirical**; upper bound |
 
@@ -194,18 +204,20 @@ over stations, flagged as too narrow) and a flag when the limit lies outside the
 
 Simulated railheads with known heights (30 m, two setups at 1.5 m height, angular step 0.6 mrad, range noise along
 the beam, 1 % gross outliers, settlement trough of 4 mm, twist −0.4 ‰; illustrative values, not a real scanner),
-run through 01–07 and compared with the truth. `python 00_simulate.py --mc 30`:
+run through 01–07 and compared with the truth, 30 Monte-Carlo runs each:
 
-| check | result |
-|---|---|
-| height bias (two scans) | −0.001 / +0.001 mm (SE 0.004 / 0.003 mm) |
-| twist | −0.398 / −0.400 ‰ (true −0.4 ‰), RMSE 0.011 / 0.012 ‰ |
-| Monte Carlo, 30 runs, 103 stations: median height bias | −0.0002 mm |
-| std(true height error) / σ_z,station (5 / 50 / 95 %) | 0.75 / 0.95 / 1.22 |
-| std(true height error) / σ_z,MAD | 0.77 / 0.98 / 1.24 |
-| σ_z,emp / 1.4826 MAD(true height error) per run | 0.84 / 1.01 / 1.22 |
+| check | default noise | RTC360-like noise (`--sigma0 0.0008`, σ_pc ≈ 0.45 mm) | same, heights stored in 1 mm steps (`--z-step 0.001`) |
+|---|---|---|---|
+| median height bias | −0.0002 mm | −0.0006 mm | −0.0016 mm |
+| RMS true height error | 0.032 mm | 0.039 mm | 0.047 mm |
+| RMS σ_z,station | 0.033 mm | 0.040 mm | 0.037 mm |
+| σ_z,emp / 1.4826 MAD(true error) (5 / 50 / 95 %) | 0.84 / 1.01 / 1.22 | 0.81 / 0.98 / 1.20 | 0.72 / 1.00 / 1.28 |
+| twist (true −0.4 ‰) | −0.398 / −0.400 ‰ | −0.398 / −0.400 ‰ | −0.397 / −0.398 ‰ |
 
-Both MAD-based σ_z estimates are unbiased when their assumptions hold (independent noise, smooth rail).
+Without a height grid both MAD-based σ_z estimates are unbiased. With 1 mm steps the rail heights stay unbiased
+and the noise still bridges the steps (height error only 20 % larger), but σ_z,station underestimates the error
+by about 25 %, because rounding errors do not average out like independent noise; σ_z,emp stays correct. Use
+σ_z,emp for the criterion.
 
 ## Results on the test clouds
 
@@ -219,12 +231,13 @@ RTC360, setup E004 on a bridge about 5 m above the rails (origin 6.268, 3.132, 3
 | distance / incidence | 7–10 m / 45–63° | 8–20 m / 51–76° |
 | point density (median) | 13.3 pts/cm² | 2.4 pts/cm² |
 | σ_pc pooled | 0.44 mm | 0.54 mm |
-| σ_z,station (median) | 0.019 mm | 0.044 mm (95 % of stations < 0.22 mm) |
-| σ_z,emp = 1.4826 MAD(e) | 0.079 mm (95 % CI 0.058–0.120, n = 43) | 0.196 mm (0.151–0.277, n = 60) |
-| σ_sys | 0.075 mm | 0.163 mm |
-| twist | −0.44 … +0.22 ‰ (13 values) | −0.28 … +0.77 ‰ (21 values) |
+| σ_z,station (median) | 0.019 mm | 0.043 mm |
+| σ_z,emp = 1.4826 MAD(e) | 0.076 mm (95 % CI 0.056–0.116, n = 43) | 0.219 mm (0.169–0.310, n = 60) |
+| σ_sys | 0.072 mm | 0.191 mm |
+| stations where σ_MAD hit the floor q/√12 | 0 of 47 | 1 of 64 |
+| twist | −0.44 … +0.22 ‰ (13 values) | −0.28 … +0.76 ‰ (21 values) |
 | criterion K σ ≤ T | met at every station, K = 2 and 3.605, either σ_z | same |
-| r_max (extrapolated, 1 setup) | 37 m (K = 2), 29 m (K = 3.605) | 60 m, 44 m |
+| r_max (extrapolated, 1 setup, K = 2) | 41 m | 50 m |
 
 Points to keep in mind:
 
@@ -232,9 +245,9 @@ Points to keep in mind:
   extrapolations, and must not be reported before the campaign with 5–7 setups.
 - σ_z,emp is 3–4 times σ_z,station: the point noise does not explain the scatter of neighbouring heights; it is the
   rail's unevenness or an error that changes along the track. A second scan (06) separates the two.
-- The heights in B look stored with a resolution of about 1 mm (horizontal bands in a cross-section; one station
-  has σ_z,station = 0.001 mm). With σ_pc ≈ 0.5 mm this distorts σ_pc and the MAD of single segments. Ask for the
-  classified LAZ with the class field and a coordinate scale of 0.1 mm or finer.
+- Both clouds are stored in 1 mm height steps (see step 01). With σ_pc ≈ 0.45–0.55 mm the noise bridges the steps,
+  so averaged rail heights keep sub-mm resolution (validation above), but σ_z,station is then too optimistic by
+  about 25 %; σ_z,emp is not affected.
 - In A the right rail head is crowned (about 1.5 mm over the band); the plane does not model this.
 
 ## Interpretation and choices to justify in the report

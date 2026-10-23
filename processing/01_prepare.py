@@ -20,15 +20,20 @@ Steps per scan:
    scanner origin = pose translation unless --origin is given).
 2. Class filter: keep only points of --keep-class, if the file has a class field.
 3. Track corridor: keep only points within --corridor/2 of the --track polyline.
-4. Origin check: the scanner position implied by the point density
+4. Height resolution: if the stored coordinates lie on a grid (RTC360 exports
+   of REGISTER 360: 1 mm in the scanner frame), its step q is detected
+   (shared/geometry.py: grid_step) or set with --z-step. All plane fits then
+   use q / sqrt(12) as lower bound of the robust (MAD) sigma, so a collapsed
+   MAD (most points on one height level) is not read as perfect precision.
+5. Origin check: the scanner position implied by the point density
    (density ~ h / r^3) must agree in plan with the origin within --origin-tol;
    otherwise stop (an E57 exported from LAS/LAZ carries no scanner pose).
-5. Split into left and right rail at the empty gap between them.
-6. Track axis = mean of both rail centre lines (cubic). Fitted once from the
+6. Split into left and right rail at the empty gap between them.
+7. Track axis = mean of both rail centre lines (cubic). Fitted once from the
    first scan, saved as <results>/01_prepare/axis.json and reused for every
    later scan, so all scans share the same stations s. --refit-axis fits a new one.
-7. Stations s along the axis and lateral offsets q for every point.
-8. Band used for all fits (--band, default auto: railhead if both rail clips
+8. Stations s along the axis and lateral offsets q for every point.
+9. Band used for all fits (--band, default auto: railhead if both rail clips
    are at most 100 mm wide, else groove):
    railhead: clip cropped to the head; head edges = 0.5 % / 99.5 % quantiles
      of the offset from the rail centre line, band = head minus --edge-trim per side;
@@ -126,6 +131,8 @@ def main():
     ap.add_argument("--track", nargs="+", type=float, default=None,
                     help="x1 y1 x2 y2 [...]: centre line of the track to keep (plan coordinates, file frame)")
     ap.add_argument("--corridor", type=float, default=1.6, help="width of the corridor along --track [m]")
+    ap.add_argument("--z-step", type=float, default=None,
+                    help="storage step of the heights [m] (default: detected; 0 = no quantization)")
     ap.add_argument("--origin-tol", type=float, default=2.0,
                     help="largest plan difference between origin and density-based estimate [m] (default: %(default)s)")
     ap.add_argument("--band", choices=("auto", "railhead", "groove"), default="auto",
@@ -162,6 +169,14 @@ def main():
                 raise SystemExit(f"label {scan.label} occurs twice; give distinct scanner/setup names")
             labels.append(scan.label)
             P, sel = select(scan, keep, a.track, a.corridor)
+            if a.z_step is not None:
+                sel.update(z_step_m=a.z_step, z_step_source="--z-step")
+            else:
+                step = geometry.grid_step(scan.raw if scan.raw is not None else scan.pts)
+                sel.update(z_step_m=step, z_step_source="detected in the stored coordinates")
+            print(f"  height resolution: " + (f"stored on a {1e3 * sel['z_step_m']:.2f} mm grid -> sigma floor "
+                                              f"{1e3 * sel['z_step_m'] / 12 ** 0.5:.2f} mm in the plane fits"
+                                              if sel["z_step_m"] else "no storage grid found"))
             sel.update(check_origin(scan.label, P, scan.origin, scan.origin_from_pose, a.origin_tol))
             if axis is None:
                 axis = geometry.TrackAxis.from_rails(*geometry.split_rails(P))

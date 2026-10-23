@@ -57,10 +57,12 @@ class PlaneFit:
     n_out: int             # rejected outliers
     coef: np.ndarray       # z = c0 + c1*ds + c2*dq   (ds, dq relative to the window centre)
     sigma: float           # sqrt(r'r / (n - 3)) of the inliers: point noise normal to the surface
-    sigma_mad: float       # 1.4826 MAD of the residuals of all points (robust, outliers included)
+    sigma_mad: float       # 1.4826 MAD of the residuals of all points (robust, outliers included), >= sigma_floor
     q00: float             # cofactor of c0: [(A'A)^-1]_00 of the inliers (~ 1/n)
     resid: np.ndarray
     inlier: np.ndarray
+    mad_at_floor: bool = False   # 1.4826 MAD was below sigma_floor and was replaced by it
+    sigma_floor: float = 0.0     # q / sqrt(12) of the height grid (0: none)
 
     @property
     def sigma_c0(self):
@@ -73,12 +75,20 @@ class PlaneFit:
         return self.sigma_mad * np.sqrt(self.q00)
 
 
-def fit_plane(ds, dq, z, k=3.0, max_iter=10):
+def fit_plane(ds, dq, z, k=3.0, max_iter=10, sigma_floor=0.0, z_step=0.0):
     """Least-squares plane with iterative k-sigma outlier rejection (sigma from the MAD).
 
     The railhead is nearly horizontal, so vertical residuals equal the residuals
     normal to the surface to within cos(slope) ~ 1. A crowned head would show
     up as a pattern of the residuals over dq (block variance factor >> 1).
+
+    sigma_floor: lower bound of the robust sigma, q / sqrt(12) for heights
+    stored on a grid of step q (see quantization_floor). Without it the MAD
+    collapses to 0 when more than half of the points lie on one height level;
+    the outlier test would then reject every point off that level and the
+    segment would look perfectly precise. With heights stored in steps of
+    z_step, the rejection threshold is k sigma + z_step / 2 (largest rounding
+    error), so the neighbouring height levels are never rejected as outliers.
     """
     A = np.column_stack([np.ones_like(ds), ds, dq])
     inl = np.ones(len(z), bool)
@@ -87,8 +97,8 @@ def fit_plane(ds, dq, z, k=3.0, max_iter=10):
             return None
         c, *_ = np.linalg.lstsq(A[inl], z[inl], rcond=None)
         r = z - A @ c
-        mad = MAD2SIGMA * np.median(np.abs(r[inl] - np.median(r[inl])))
-        new = np.abs(r) <= k * max(mad, 1e-6)
+        mad = max(MAD2SIGMA * np.median(np.abs(r[inl] - np.median(r[inl]))), sigma_floor, 1e-6)
+        new = np.abs(r) <= k * mad + z_step / 2
         if np.array_equal(new, inl):
             break
         inl = new
@@ -98,10 +108,12 @@ def fit_plane(ds, dq, z, k=3.0, max_iter=10):
     r_in = r[inl]
     sigma = float(np.sqrt(r_in @ r_in / (n - 3)))
     N_inv = np.linalg.inv(A[inl].T @ A[inl])
-    return PlaneFit(n, int(len(z) - n), c, sigma, mad_sigma(r), float(N_inv[0, 0]), r, inl)
+    raw = mad_sigma(r)
+    return PlaneFit(n, int(len(z) - n), c, sigma, max(raw, sigma_floor), float(N_inv[0, 0]), r, inl,
+                    raw < sigma_floor, sigma_floor)
 
 
-def block_variance_factor(ds, resid, n_blocks=4):
+def block_variance_factor(ds, resid, n_blocks=4, sigma_floor=0.0):
     """Diagnostic for correlated residuals (effective n < n).
 
     Splits the window into n_blocks along s and compares the scatter of the block
@@ -115,7 +127,7 @@ def block_variance_factor(ds, resid, n_blocks=4):
     nb = np.array([np.sum(k == j) for j in range(n_blocks) if np.sum(k == j) > 2])
     if len(means) < 3:
         return np.nan
-    s2 = resid.var(ddof=3)
+    s2 = max(resid.var(ddof=3), sigma_floor ** 2)
     return float(np.mean(means ** 2 * nb) / s2)
 
 
@@ -140,7 +152,12 @@ class Segment:
         return 0.5 * (self.s_from + self.s_to)
 
 
-def band_segments(pts, s, q, band: RunningBand, seg_len=config.SEG_LEN, min_points=10):
+def quantization_floor(step):
+    """Std of the rounding error of values stored on a grid of `step` (uniform): step / sqrt(12)."""
+    return float(step) / np.sqrt(12.0) if step else 0.0
+
+
+def band_segments(pts, s, q, band: RunningBand, seg_len=config.SEG_LEN, min_points=10, z_step=0.0):
     """Cut the band of one rail into segments on the grid k * seg_len and fit a plane to each.
 
     The grid is global (multiples of seg_len), so both rails and all scans that
@@ -155,7 +172,8 @@ def band_segments(pts, s, q, band: RunningBand, seg_len=config.SEG_LEN, min_poin
         w = (S >= s0) & (S < s0 + seg_len)
         n_raw = int(w.sum())
         ds, dq = S[w] - (s0 + seg_len / 2), Q[w] - qc
-        fit = fit_plane(ds, dq, P[w, 2]) if n_raw >= min_points else None
+        fit = (fit_plane(ds, dq, P[w, 2], sigma_floor=quantization_floor(z_step), z_step=z_step)
+               if n_raw >= min_points else None)
         out.append(Segment(band.side, float(s0), float(s0 + seg_len), n_raw,
                            bool(s_lo <= s0 and s_hi >= s0 + seg_len), band.q_hi - band.q_lo,
                            float(band.center_q(s0 + seg_len / 2)), ds, dq, P[w], fit))
@@ -218,8 +236,8 @@ def noise_metrics(seg: Segment):
     return dict(
         outlier_share=fit.n_out / seg.n_raw,
         sigma_pc_mm=fit.sigma * 1e3, sigma_pc_ci_lo_mm=lo * 1e3, sigma_pc_ci_hi_mm=hi * 1e3,
-        sigma_mad_mm=fit.sigma_mad * 1e3,
-        var_factor=block_variance_factor(seg.ds[fit.inlier], fit.resid[fit.inlier]),
+        sigma_mad_mm=fit.sigma_mad * 1e3, mad_at_floor=fit.mad_at_floor,
+        var_factor=block_variance_factor(seg.ds[fit.inlier], fit.resid[fit.inlier], sigma_floor=fit.sigma_floor),
     )
 
 
@@ -233,7 +251,7 @@ def segment_table(preps, metric, seg_len=config.SEG_LEN, keep=lambda seg: True) 
     for p in preps:
         for side in ("L", "R"):
             P, s, q = p.rails[side]
-            for seg in band_segments(P, s, q, p.bands[side], seg_len):
+            for seg in band_segments(P, s, q, p.bands[side], seg_len, z_step=p.z_step):
                 if seg.fit is None or not keep(seg):
                     continue
                 rows.append(dict(scanner=p.scanner, setup=p.setup, label=p.label, rail=seg.rail,

@@ -2,6 +2,7 @@
 
     python 00_simulate.py                 # two simulated setups, full pipeline 01-07, errors against the truth
     python 00_simulate.py --mc 30         # in addition: Monte-Carlo check of sigma_z (01 and 04, 30 runs)
+    python 00_simulate.py --mc 30 --z-step 0.001 --out results_sim_1mm   # heights stored in 1 mm steps
 
 The simulated railheads are two flat 55 mm wide strips, 30 m long, 1.0 m
 apart, with known heights (longitudinal gradient, 4 mm settlement trough,
@@ -76,14 +77,16 @@ def simulate_rail(side, origin, rng, x_range=(0.0, 30.0), dphi=0.6e-3, sigma0=0.
     return pts
 
 
-def make_clips(folder, setups, seed):
+def make_clips(folder, setups, seed, z_step=0.0, sigma0=0.0006):
     folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=True)
     rows = []
     for i, (name, o) in enumerate(setups.items()):
         rng = np.random.default_rng(seed + i)
         o = np.asarray(o, float)
-        pts = np.vstack([simulate_rail(side, o, rng) for side in ("L", "R")])
+        pts = np.vstack([simulate_rail(side, o, rng, sigma0=sigma0) for side in ("L", "R")])
+        if z_step:      # heights stored on a grid in the scanner frame, as in RTC360 / REGISTER 360 exports
+            pts[:, 2] = o[2] + np.round((pts[:, 2] - o[2]) / z_step) * z_step
         np.save(folder / f"SIM_{name}.npy", pts)
         rows.append(dict(path=f"SIM_{name}.npy", scanner="SIM", setup=name,
                          origin_x=o[0], origin_y=o[1], origin_z=o[2]))
@@ -116,16 +119,20 @@ def main():
     ap.add_argument("--out", default=str(HERE / "results_sim"), help="output folder (default: %(default)s)")
     ap.add_argument("--mc", type=int, default=0, help="number of Monte-Carlo runs for the sigma_z check")
     ap.add_argument("--seed", type=int, default=100)
+    ap.add_argument("--sigma0", type=float, default=0.0006,
+                    help="range noise at 0 m along the beam [m] (default: %(default)s)")
+    ap.add_argument("--z-step", type=float, default=0.0,
+                    help="store the simulated heights on a grid of this step [m], e.g. 0.001 (default: no grid)")
     a = ap.parse_args()
     out = Path(a.out)
     res = out / "results"
-    lst = make_clips(out / "clips", SETUPS, a.seed)
+    lst = make_clips(out / "clips", SETUPS, a.seed, a.z_step, a.sigma0)
     print(run("01_prepare.py", "--list", lst, "--results", res, "--refit-axis").strip().splitlines()[-1])
     for script in ("02_point_density.py", "03_point_noise.py", "04_rail_heights.py", "05_track_geometry.py",
                    "06_compare_scans.py", "07_operational_limits.py"):
         run(script, "--results", res)
     seg = height_errors(res)
-    val = dict(truth=dict(twist_permille=TWIST_TRUE, setups=SETUPS), scans={})
+    val = dict(truth=dict(twist_permille=TWIST_TRUE, setups=SETUPS), z_step_m=a.z_step, sigma0_m=a.sigma0, scans={})
     for label, g in seg.groupby("label"):
         geo = pd.read_csv(config.step_dir(res, "geometry") / f"{label}_geometry.csv")
         e = g["err_mm"].to_numpy()
@@ -146,7 +153,7 @@ def main():
         errs = []
         for k in range(a.mc):
             mres = out / "mc" / "results"
-            mlst = make_clips(out / "mc" / "clips", {"S1": SETUPS["S1"]}, a.seed + 1000 + 10 * k)
+            mlst = make_clips(out / "mc" / "clips", {"S1": SETUPS["S1"]}, a.seed + 1000 + 10 * k, a.z_step, a.sigma0)
             run("01_prepare.py", "--list", mlst, "--results", mres, "--refit-axis")
             run("04_rail_heights.py", "--results", mres)
             g = height_errors(mres)[["rail", "s_mid", "err_mm", "sigma_z_station_mm", "sigma_z_mad_mm",
@@ -156,6 +163,7 @@ def main():
             print(f"Monte Carlo run {k + 1}/{a.mc}", end="\r")
         e = pd.concat(errs, ignore_index=True)
         per = e.groupby(["rail", "s_mid"]).agg(n=("err_mm", "size"), bias=("err_mm", "mean"), std=("err_mm", "std"),
+                                               rms=("err_mm", lambda x: np.sqrt(np.mean(x ** 2))),
                                                station=("sigma_z_station_mm", lambda x: np.sqrt(np.mean(x ** 2))),
                                                mad=("sigma_z_mad_mm", lambda x: np.sqrt(np.mean(x ** 2))),
                                                formal=("sigma_z_formal_mm", lambda x: np.sqrt(np.mean(x ** 2))))
@@ -165,11 +173,16 @@ def main():
         val["monte_carlo"] = dict(
             runs=a.mc, stations=len(per), median_bias_mm=float(per["bias"].median()),
             ratio_true_std_to_sigma_z_station_p05_p50_p95=q(per["std"] / per["station"]),
+            ratio_true_rms_to_sigma_z_station_p05_p50_p95=q(per["rms"] / per["station"]),
+            rms_true_error_mm=float(np.sqrt(np.mean(e["err_mm"] ** 2))),
+            rms_sigma_z_station_mm=float(np.sqrt(np.mean(e["sigma_z_station_mm"] ** 2))),
+            share_stations_with_bias_above_2se=float(np.mean(np.abs(per["bias"]) > 2 * per["std"] / np.sqrt(per["n"]))),
             ratio_true_std_to_sigma_z_mad_p05_p50_p95=q(per["std"] / per["mad"]),
             ratio_true_std_to_sigma_z_formal_p05_p50_p95=q(per["std"] / per["formal"]),
             ratio_sigma_z_emp_to_true_mad_p05_p50_p95=q(runs["emp"] / runs["true_mad"]))
         m = val["monte_carlo"]
         print(f"\nMonte Carlo ({a.mc} runs, {len(per)} stations): median bias {m['median_bias_mm']:+.4f} mm; "
+              f"RMS true error {m['rms_true_error_mm']:.4f} mm vs RMS sigma_z,station {m['rms_sigma_z_station_mm']:.4f} mm; "
               f"std(true error) / sigma_z,station 5/50/95 %: "
               f"{'/'.join(f'{x:.2f}' for x in m['ratio_true_std_to_sigma_z_station_p05_p50_p95'])}; "
               f"/ sigma_z,MAD: {'/'.join(f'{x:.2f}' for x in m['ratio_true_std_to_sigma_z_mad_p05_p50_p95'])}; "
