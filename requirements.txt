@@ -7,3 +7,4 @@ matplotlib>=3.7
 statsmodels>=0.14
 plyfile>=1.0
 pye57>=0.4
+# optional, only for LAS/LAZ input: laspy[lazrs]>=2.4

@@ -307,3 +307,56 @@ def station_rails(PL, PR, axis: TrackAxis):
     if np.median(sq["L"][2]) < 0 or np.median(sq["R"][2]) > 0:
         raise RuntimeError("both rails lie on the same side of the track axis; the axis does not fit this scan")
     return sq
+
+
+# --------------------------------------------------------------------------- selection of one track
+def corridor_mask(xy, polyline, width):
+    """Points within width / 2 of a polyline in plan, and not beyond its two end points.
+
+    Used to cut one track out of a cloud that contains several tracks (junction):
+    the polyline follows the track centre, width covers both rails (e.g. 1.6 m
+    for metre gauge with grooved rails).
+    """
+    xy, V = np.asarray(xy, float), np.asarray(polyline, float).reshape(-1, 2)
+    best = np.full(len(xy), np.inf)
+    for a, b in zip(V[:-1], V[1:]):
+        d = b - a
+        t = ((xy - a) @ d) / (d @ d)
+        inside = (t >= 0) & (t <= 1)
+        dist = np.abs((xy - a) @ np.array([-d[1], d[0]])) / np.linalg.norm(d)
+        best = np.where(inside & (dist < best), dist, best)
+    return best <= width / 2
+
+
+def estimate_origin(pts, origin0, n_sample=20000, radius=0.015, seed=0):
+    """Scanner position implied by the point density (plausibility check of the given origin).
+
+    A scanner with a constant angular step puts density ~ cos(theta) / r^2 = h / r^3
+    points per area on a horizontal surface (h = height above it). The local
+    density (neighbours within `radius` in plan) of a random sample is fitted
+    with ln(density) = c + ln(h) - 3 ln(r) over the origin. Steel returns
+    weaken at grazing incidence, which biases the height low; the plan
+    position is the robust part of the estimate.
+    """
+    from scipy.optimize import least_squares
+    from scipy.spatial import cKDTree
+    rng = np.random.default_rng(seed)
+    S = pts[rng.choice(len(pts), min(n_sample, len(pts)), replace=False)]
+    n = np.array([len(k) for k in cKDTree(pts[:, :2]).query_ball_point(S[:, :2], radius)])
+
+    def res(p):
+        d = S - p[:3]
+        r = np.linalg.norm(d, axis=1)
+        return p[3] + np.log(np.abs(d[:, 2]) / r ** 3) - np.log(n)
+    starts = [np.r_[origin0, 5.0]] + [np.r_[S[:, :2].mean(0) + off, S[:, 2].mean() + dz, 5.0]
+                                      for off in ([0, 0], [10, 0], [-10, 0], [0, 10], [0, -10]) for dz in (2, 5)]
+    fits = [least_squares(res, x0) for x0 in starts]
+    f = min(fits, key=lambda f: f.cost)
+    return f.x[:3], float(np.std(f.fun))
+
+
+def clip_width(s, q, quantile=config.EDGE_QUANTILE, degree=3):
+    """Width of one rail clip across the rail (quantiles of the offset from its centre line) [m]."""
+    qr = q - np.polyval(np.polyfit(s, q, degree), s)
+    lo, hi = np.quantile(qr, [quantile, 1 - quantile])
+    return float(hi - lo)

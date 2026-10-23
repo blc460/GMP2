@@ -1,0 +1,56 @@
+{
+  "scans": [
+    "RTC360_E004"
+  ],
+  "inputs": [
+    {
+      "path": "..\\pointclouds\\track-test-2-classified.e57",
+      "sha256": "7e6c6e7b3ce9936dc528ce2310708cb42f0e467107c71c2b102c27804fd210c5"
+    }
+  ],
+  "provenance": {
+    "script": "01_prepare.py",
+    "options": {
+      "clouds": [
+        "../pointclouds/track-test-2-classified.e57"
+      ],
+      "list": null,
+      "scanner": "RTC360",
+      "setup": "E004",
+      "origin": [
+        6.268,
+        3.132,
+        3.14
+      ],
+      "keep_class": [
+        "1"
+      ],
+      "class_column": null,
+      "track": [
+        8.5,
+        8.4,
+        25.5,
+        8.8
+      ],
+      "corridor": 1.6,
+      "origin_tol": 2.0,
+      "band": "auto",
+      "edge_trim": 0.005,
+      "band_width": 0.03,
+      "edge_margin": 0.005,
+      "refit_axis": false,
+      "results": "results/track-test-2-classified"
+    },
+    "git_commit": "6df424b",
+    "uncommitted_changes": true,
+    "run_utc": "2026-10-23T11:58:24+00:00",
+    "python": "3.14.8",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "packages": {
+      "numpy": "2.5.4",
+      "scipy": "1.18.1",
+      "pandas": "3.0.6",
+      "matplotlib": "3.11.2"
+    }
+  }
+}

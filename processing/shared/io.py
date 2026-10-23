@@ -46,6 +46,8 @@ class Scan:
     source: str
     pts: np.ndarray        # (n, 3) in the levelled frame
     origin: np.ndarray     # scanner origin in the same frame
+    origin_from_pose: bool = False   # origin = E57 pose translation (not given explicitly)
+    cls: np.ndarray | None = None    # point class (LAS/PLY/ASCII), None if the file has none
 
 
 @dataclass
@@ -58,30 +60,76 @@ class Prepared:
     axis: TrackAxis
     bands: dict            # side -> RunningBand
     rails: dict            # side -> (P, s, q)
-    head_width: dict       # side -> measured railhead width [m] (NaN for --band groove)
+    head_width: dict       # side -> measured railhead width [m] (NaN for band groove)
     band_method: str = "railhead"
+    selection: dict | None = None    # class filter, track corridor, origin check of step 01
 
 
 # --------------------------------------------------------------------------- point clouds
-def load_points(path):
-    """Read x, y, z from an E57 (all scans, transformed with their pose), PLY, NPY or ASCII file."""
+CLASS_FIELDS = ("classification", "class", "scalar_classification", "scalar_class", "category", "label")
+
+
+def _class_field(names):
+    low = {n.lower(): n for n in names}
+    return next((low[c] for c in CLASS_FIELDS if c in low), None)
+
+
+def read_cloud(path, class_column=None):
+    """x, y, z (n, 3) and the point class (n,) or None, from E57, LAS/LAZ, PLY, NPY or ASCII.
+
+    The class is read from a LAS/LAZ `classification`, a PLY property named like
+    classification / class / scalar_Classification / label, or the column
+    `class_column` (0-based) of an NPY or ASCII file. E57 files have no standard
+    class field (CloudCompare does not export it), so E57 always gives None.
+    E57 points are transformed with their pose into the file frame.
+    """
     path = str(path)
-    if path.lower().endswith(".e57"):
+    low = path.lower()
+    if low.endswith(".e57"):
         import pye57
         e = pye57.E57(path)
         parts = []
         for i in range(e.scan_count):
             d = e.read_scan(i, ignore_missing_fields=True, transform=True)
             parts.append(np.column_stack([d["cartesianX"], d["cartesianY"], d["cartesianZ"]]))
-        return np.vstack(parts).astype(np.float64)
-    if path.lower().endswith(".ply"):
+        return np.vstack(parts).astype(np.float64), None
+    if low.endswith((".las", ".laz")):
+        try:
+            import laspy
+        except ImportError as exc:
+            raise SystemExit("reading LAS/LAZ needs laspy (and lazrs for LAZ): "
+                             "python -m pip install \"laspy[lazrs]\"") from exc
+        las = laspy.read(path)
+        return np.column_stack([las.x, las.y, las.z]).astype(np.float64), np.asarray(las.classification, int)
+    if low.endswith(".ply"):
         from plyfile import PlyData
         v = PlyData.read(path)["vertex"]
-        return np.column_stack([v["x"], v["y"], v["z"]]).astype(np.float64)
-    if path.lower().endswith(".npy"):
-        return np.load(path)[:, :3].astype(np.float64)
-    data = np.loadtxt(path, comments=("#", "//"), delimiter=None, usecols=(0, 1, 2))
-    return np.atleast_2d(data).astype(np.float64)
+        f = _class_field(v.data.dtype.names)
+        cls = np.rint(np.asarray(v[f], float)).astype(int) if f else None
+        return np.column_stack([v["x"], v["y"], v["z"]]).astype(np.float64), cls
+    if low.endswith(".npy"):
+        a = np.load(path)
+    else:
+        a = np.atleast_2d(np.loadtxt(path, comments=("#", "//"), delimiter=None if not low.endswith(".csv") else ",",
+                                     skiprows=_header_rows(path)))
+    cls = np.rint(a[:, class_column]).astype(int) if class_column is not None else None
+    return a[:, :3].astype(np.float64), cls
+
+
+def _header_rows(path):
+    """1 if the first line of an ASCII file is a header (not numeric), else 0."""
+    with open(path) as f:
+        first = f.readline().replace(",", " ").split()
+    try:
+        [float(x) for x in first]
+        return 0
+    except ValueError:
+        return 1
+
+
+def load_points(path):
+    """x, y, z only (see read_cloud)."""
+    return read_cloud(path)[0]
 
 
 def sources_from_list(path) -> list[Source]:
@@ -104,7 +152,8 @@ def _clean(name):
     return re.sub(r"[^A-Za-z0-9.\-]+", "-", str(name)).strip("-")
 
 
-def read_scans(src: Source) -> list[Scan]:
+def read_scans(src: Source, class_column=None) -> list[Scan]:
+    """One Scan per E57 scan (origin = pose translation unless given) or per other file (origin required)."""
     tokens = Path(src.path).stem.split("_")
     scanner = _clean(src.scanner or tokens[0])
     setup = _clean(src.setup or (tokens[1] if len(tokens) > 1 else Path(src.path).stem))
@@ -113,19 +162,27 @@ def read_scans(src: Source) -> list[Scan]:
         e = pye57.E57(str(src.path))
         scans = []
         for i in range(e.scan_count):
+            h = e.get_header(i)
             d = e.read_scan(i, ignore_missing_fields=True, transform=True)
             pts = np.column_stack([d["cartesianX"], d["cartesianY"], d["cartesianZ"]]).astype(np.float64)
-            origin = src.origin if src.origin is not None else np.asarray(e.get_header(i).translation, float)
+            origin = src.origin if src.origin is not None else np.asarray(h.translation, float)
             su = setup if e.scan_count == 1 else f"{setup}-{i + 1}"
-            name = e.get_header(i).node["name"].value() if e.get_header(i).node.isDefined("name") else ""
+            name = h.node["name"].value() if h.node.isDefined("name") else ""
             print(f"{Path(src.path).name}: scan {i + 1}/{e.scan_count} '{name}' -> {scanner}_{su}, "
-                  f"{len(pts)} points, origin {np.round(origin, 3).tolist()}")
-            scans.append(Scan(f"{scanner}_{su}", scanner, su, str(src.path), pts, origin))
+                  f"{len(pts)} points, origin {np.round(origin, 3).tolist()}"
+                  + (" (given)" if src.origin is not None else " (E57 pose)"))
+            if _class_field(h.point_fields):
+                print(f"  note: field {_class_field(h.point_fields)} is not a standard E57 field and is not read")
+            scans.append(Scan(f"{scanner}_{su}", scanner, su, str(src.path), pts, origin,
+                              src.origin is None))
         return scans
     if src.origin is None:
         raise ValueError(f"{src.path}: the scanner origin is required for non-E57 input")
-    return [Scan(f"{scanner}_{setup}", scanner, setup, str(src.path), load_points(src.path),
-                 np.asarray(src.origin, float))]
+    pts, cls = read_cloud(src.path, class_column)
+    print(f"{Path(src.path).name} -> {scanner}_{setup}, {len(pts)} points"
+          + (f", classes {dict(zip(*np.unique(cls, return_counts=True)))}" if cls is not None else ", no class field"))
+    return [Scan(f"{scanner}_{setup}", scanner, setup, str(src.path), pts, np.asarray(src.origin, float),
+                 False, cls)]
 
 
 # --------------------------------------------------------------------------- prepared scans
@@ -135,7 +192,7 @@ def save_prepared(p: Prepared, folder):
     np.savez_compressed(folder / f"{p.label}.npz", origin=p.origin,
                         **{f"{k}{side}": v for side, rail in p.rails.items() for k, v in zip("Psq", rail)})
     meta = dict(label=p.label, scanner=p.scanner, setup=p.setup, source=p.source, origin=p.origin.tolist(),
-                band_method=p.band_method, head_width_m=p.head_width, axis=asdict(p.axis),
+                band_method=p.band_method, selection=p.selection, head_width_m=p.head_width, axis=asdict(p.axis),
                 bands={k: asdict(b) for k, b in p.bands.items()})
     with open(folder / f"{p.label}.json", "w") as f:
         json.dump(meta, f, indent=2)
@@ -157,7 +214,7 @@ def load_prepared(results, scanners=None) -> list[Prepared]:
                             TrackAxis(**m["axis"]),
                             {k: RunningBand(**b) for k, b in m["bands"].items()},
                             {side: (a[f"P{side}"], a[f"s{side}"], a[f"q{side}"]) for side in ("L", "R")},
-                            m["head_width_m"], m.get("band_method", "railhead")))
+                            m["head_width_m"], m.get("band_method", "railhead"), m.get("selection")))
     if not out:
         raise SystemExit(f"no prepared scans in {folder}" + (f" for scanner(s) {scanners}" if scanners else "")
                          + "; run 01_prepare.py first")

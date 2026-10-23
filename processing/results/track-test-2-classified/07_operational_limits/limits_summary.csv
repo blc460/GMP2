@@ -1,0 +1,5 @@
+scanner,by,requirement,sigma_z_req_mm,limit,limit_ci_lo,limit_ci_hi,ci_from,at_grid_end,extrapolated,observed_min,observed_max,slope_b,se_b,se_type,sigma_sys_mm,sigma_sys_source,n_setups,n_stations
+RTC360,range,K2,1.22,59.53301650825413,39.22237368684342,100.0,stations (too narrow: < 3 setups),False,True,7.782546978691304,20.503700562029724,2.124683056637572,0.3598717467834207,ols,0.163436710194952,04_rail_heights (upper bound),1,64
+RTC360,range,K3.6,0.67,44.451225612806404,31.558285392696348,100.0,stations (too narrow: < 3 setups),False,True,7.782546978691304,20.503700562029724,2.124683056637572,0.3598717467834207,ols,0.163436710194952,04_rail_heights (upper bound),1,64
+RTC360,incidence,K2,1.22,85.15,82.65,88.15125,stations (too narrow: < 3 setups),False,True,50.826774699725455,76.38103890499808,-2.108871413626855,0.35873046491878857,ols,0.163436710194952,04_rail_heights (upper bound),1,64
+RTC360,incidence,K3.6,0.67,83.5,80.84875000000001,87.15,stations (too narrow: < 3 setups),False,True,50.826774699725455,76.38103890499808,-2.108871413626855,0.35873046491878857,ols,0.163436710194952,04_rail_heights (upper bound),1,64

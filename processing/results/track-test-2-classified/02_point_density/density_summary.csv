@@ -1,0 +1,2 @@
+scanner,n_setups,n_segments,range_min_m,range_max_m,incidence_min_deg,incidence_max_deg,density_median_pts_cm2,density_p05_pts_cm2,density_p95_pts_cm2,spacing_median_mm,completeness_median,k_pts_cm2_m2,angular_step_mrad,slope_log_range,slope_log_range_se
+RTC360,1,64,7.782546978691304,20.503700562029724,50.826774699725455,76.38103890499808,2.3566666666666665,0.5316666666666666,11.22733333333333,6.514052377637835,0.435,1086.5768450533583,0.30336800599887775,-3.646545384244952,0.11034796203940798

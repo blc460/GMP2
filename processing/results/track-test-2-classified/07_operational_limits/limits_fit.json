@@ -1,0 +1,168 @@
+{
+  "settings": {
+    "speed_class": "48-60",
+    "requirements_mm": {
+      "K2": 1.22,
+      "K3.6": 0.67
+    },
+    "n_boot": 1000,
+    "seed": 1,
+    "grid": {
+      "range": [
+        0.5,
+        100.0
+      ],
+      "incidence": [
+        0.0,
+        89.5
+      ]
+    }
+  },
+  "provenance": {
+    "script": "07_operational_limits.py",
+    "options": {
+      "results": "results/track-test-2-classified",
+      "scanner": null,
+      "sigma_sys": null,
+      "speed_class": "48-60",
+      "n_boot": 1000,
+      "seed": 1
+    },
+    "git_commit": "6df424b",
+    "uncommitted_changes": true,
+    "run_utc": "2026-10-23T11:59:15+00:00",
+    "python": "3.14.8",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "packages": {
+      "numpy": "2.5.4",
+      "scipy": "1.18.1",
+      "pandas": "3.0.6",
+      "matplotlib": "3.11.2"
+    }
+  },
+  "scanners": {
+    "RTC360": {
+      "n_setups": 1,
+      "n_stations": 64,
+      "sigma_sys_mm": 0.163436710194952,
+      "sigma_sys_source": "04_rail_heights (upper bound)",
+      "corr_range_incidence": 0.9588250527147533,
+      "range": {
+        "model": "ln sigma_z = a + b ln r",
+        "observed": [
+          7.782546978691304,
+          20.503700562029724
+        ],
+        "a": -8.494474955303229,
+        "b": 2.124683056637572,
+        "se_a": 0.929148339045158,
+        "se_b": 0.3598717467834207,
+        "rmse_log": 0.8187908091663697,
+        "n": 64,
+        "se_type": "ols",
+        "limits": {
+          "K2": {
+            "scanner": "RTC360",
+            "by": "range",
+            "requirement": "K2",
+            "sigma_z_req_mm": 1.22,
+            "limit": 59.53301650825413,
+            "limit_ci_lo": 39.22237368684342,
+            "limit_ci_hi": 100.0,
+            "ci_from": "stations (too narrow: < 3 setups)",
+            "at_grid_end": false,
+            "extrapolated": true,
+            "observed_min": 7.782546978691304,
+            "observed_max": 20.503700562029724,
+            "slope_b": 2.124683056637572,
+            "se_b": 0.3598717467834207,
+            "se_type": "ols",
+            "sigma_sys_mm": 0.163436710194952,
+            "sigma_sys_source": "04_rail_heights (upper bound)",
+            "n_setups": 1,
+            "n_stations": 64
+          },
+          "K3.6": {
+            "scanner": "RTC360",
+            "by": "range",
+            "requirement": "K3.6",
+            "sigma_z_req_mm": 0.67,
+            "limit": 44.451225612806404,
+            "limit_ci_lo": 31.558285392696348,
+            "limit_ci_hi": 100.0,
+            "ci_from": "stations (too narrow: < 3 setups)",
+            "at_grid_end": false,
+            "extrapolated": true,
+            "observed_min": 7.782546978691304,
+            "observed_max": 20.503700562029724,
+            "slope_b": 2.124683056637572,
+            "se_b": 0.3598717467834207,
+            "se_type": "ols",
+            "sigma_sys_mm": 0.163436710194952,
+            "sigma_sys_source": "04_rail_heights (upper bound)",
+            "n_setups": 1,
+            "n_stations": 64
+          }
+        }
+      },
+      "incidence": {
+        "model": "ln sigma_z = a + b ln cos(theta)",
+        "observed": [
+          50.826774699725455,
+          76.38103890499808
+        ],
+        "a": -5.037564292840411,
+        "b": -2.108871413626855,
+        "se_a": 0.35456894329177485,
+        "se_b": 0.35873046491878857,
+        "rmse_log": 0.8200534125780916,
+        "n": 64,
+        "se_type": "ols",
+        "limits": {
+          "K2": {
+            "scanner": "RTC360",
+            "by": "incidence",
+            "requirement": "K2",
+            "sigma_z_req_mm": 1.22,
+            "limit": 85.15,
+            "limit_ci_lo": 82.65,
+            "limit_ci_hi": 88.15125,
+            "ci_from": "stations (too narrow: < 3 setups)",
+            "at_grid_end": false,
+            "extrapolated": true,
+            "observed_min": 50.826774699725455,
+            "observed_max": 76.38103890499808,
+            "slope_b": -2.108871413626855,
+            "se_b": 0.35873046491878857,
+            "se_type": "ols",
+            "sigma_sys_mm": 0.163436710194952,
+            "sigma_sys_source": "04_rail_heights (upper bound)",
+            "n_setups": 1,
+            "n_stations": 64
+          },
+          "K3.6": {
+            "scanner": "RTC360",
+            "by": "incidence",
+            "requirement": "K3.6",
+            "sigma_z_req_mm": 0.67,
+            "limit": 83.5,
+            "limit_ci_lo": 80.84875000000001,
+            "limit_ci_hi": 87.15,
+            "ci_from": "stations (too narrow: < 3 setups)",
+            "at_grid_end": false,
+            "extrapolated": true,
+            "observed_min": 50.826774699725455,
+            "observed_max": 76.38103890499808,
+            "slope_b": -2.108871413626855,
+            "se_b": 0.35873046491878857,
+            "se_type": "ols",
+            "sigma_sys_mm": 0.163436710194952,
+            "sigma_sys_source": "04_rail_heights (upper bound)",
+            "n_setups": 1,
+            "n_stations": 64
+          }
+        }
+      }
+    }
+  }
+}

@@ -3,14 +3,14 @@
   "provenance": {
     "script": "06_compare_scans.py",
     "options": {
-      "results": "D:\\cblase\\GMP2\\processing\\results",
+      "results": "results/track-test-2-classified",
       "scanner": null,
       "pairs": null,
       "min_common": 5
     },
-    "git_commit": "f3e3494",
+    "git_commit": "6df424b",
     "uncommitted_changes": true,
-    "run_utc": "2026-10-22T14:29:12+00:00",
+    "run_utc": "2026-10-23T11:59:12+00:00",
     "python": "3.14.8",
     "platform": "Windows-11-10.0.26200-SP0",
     "packages": {

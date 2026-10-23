@@ -21,16 +21,16 @@
   "provenance": {
     "script": "07_operational_limits.py",
     "options": {
-      "results": "D:\\cblase\\GMP2\\processing\\results",
+      "results": "results/track-test",
       "scanner": null,
       "sigma_sys": null,
       "speed_class": "48-60",
       "n_boot": 1000,
       "seed": 1
     },
-    "git_commit": "b91c1e0",
+    "git_commit": "6df424b",
     "uncommitted_changes": true,
-    "run_utc": "2026-10-22T14:34:35+00:00",
+    "run_utc": "2026-10-23T11:58:59+00:00",
     "python": "3.14.8",
     "platform": "Windows-11-10.0.26200-SP0",
     "packages": {

@@ -1,0 +1,92 @@
+{
+  "criterion": "density",
+  "settings": {
+    "results": "results/track-test-2-classified",
+    "scans": [
+      "RTC360_E004"
+    ],
+    "seg_len": 0.5,
+    "cell": 0.005,
+    "range_bin": 1.0,
+    "incidence_bin": 5.0
+  },
+  "provenance": {
+    "script": "02_point_density.py",
+    "options": {
+      "results": "results/track-test-2-classified",
+      "scanner": null,
+      "seg_len": 0.5,
+      "range_bin": 1.0,
+      "incidence_bin": 5.0,
+      "cell": 0.005
+    },
+    "git_commit": "6df424b",
+    "uncommitted_changes": true,
+    "run_utc": "2026-10-23T11:59:01+00:00",
+    "python": "3.14.8",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "packages": {
+      "numpy": "2.5.4",
+      "scipy": "1.18.1",
+      "pandas": "3.0.6",
+      "matplotlib": "3.11.2"
+    }
+  },
+  "scanners": {
+    "RTC360": {
+      "n_setups": 1,
+      "setups": [
+        "E004"
+      ],
+      "n_segments": 64,
+      "n_points": 36049,
+      "range_m": [
+        7.782546978691304,
+        20.503700562029724
+      ],
+      "incidence_deg": [
+        50.826774699725455,
+        76.38103890499808
+      ],
+      "corr_range_incidence": 0.9588250527147533,
+      "model_cos_over_r2": {
+        "formula": "density = k * cos(incidence) / range^2",
+        "k_pts_cm2_m2": 1086.5768450533583,
+        "k_iqr": [
+          973.9195685677771,
+          1175.3298314353199
+        ],
+        "angular_step_mrad": 0.30336800599887775,
+        "spacing_at_10m_normal_mm": 3.0336800599887774
+      },
+      "power_law_range": {
+        "formula": "ln(density) = a + b ln(range)",
+        "expected_b_fixed_height": -3.0,
+        "a": 10.174216718738979,
+        "b": -3.646545384244952,
+        "se_a": 0.284906015996968,
+        "se_b": 0.11034796203940798,
+        "r2": 0.9462752318685795,
+        "n": 64,
+        "rmse": 0.2510669368620444
+      },
+      "power_law_cos_incidence": {
+        "formula": "ln(density) = a + b ln(cos(incidence))",
+        "a": 4.21851684199186,
+        "b": 3.5954358973550904,
+        "se_a": 0.12509524718419673,
+        "se_b": 0.1265634710273811,
+        "r2": 0.9286555793969168,
+        "n": 64,
+        "rmse": 0.289322531743237
+      },
+      "summary": {
+        "median": 2.3566666666666665,
+        "p05": 0.5316666666666666,
+        "p95": 11.22733333333333,
+        "median_spacing_mm": 6.514052377637835,
+        "median_completeness": 0.435
+      }
+    }
+  }
+}

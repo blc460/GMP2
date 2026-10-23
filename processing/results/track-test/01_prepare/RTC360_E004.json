@@ -9,6 +9,28 @@
     3.140473015626
   ],
   "band_method": "railhead",
+  "selection": {
+    "n_points_file": 87936,
+    "class_field": false,
+    "keep_class": null,
+    "origin": [
+      6.267670565757,
+      3.131979059031,
+      3.140473015626
+    ],
+    "origin_source": "E57 pose",
+    "origin_density_estimate": [
+      6.283369455266977,
+      3.410086672783398,
+      2.4126313192654307
+    ],
+    "origin_plan_difference_m": 0.27855035444044857,
+    "density_fit_resid_std": 0.2282887918635221,
+    "clip_width_m": {
+      "L": 0.0249673257868575,
+      "R": 0.03304829920473257
+    }
+  },
   "head_width_m": {
     "L": 0.0249673257868575,
     "R": 0.03304829920473257
