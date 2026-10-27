@@ -1,0 +1,37 @@
+scanner,condition,strip,d_bin,criterion,sigma_req_mm,segments,pass_share
+FARO,dry,sok,"[0, 5)","QC Int.1/3, 48-60 km/h",1.22,5,1.0
+FARO,dry,sok,"[0, 5)","QC Int.2, 48-60 km/h",0.67,5,1.0
+FARO,dry,sok,"[0, 5)","Change, VBZ 2 sigma (height)",0.53,5,1.0
+FARO,dry,sok,"[0, 5)","Change, strict two-sided (height)",0.29,5,1.0
+FARO,dry,sok,"[5, 10)","QC Int.1/3, 48-60 km/h",1.22,31,1.0
+FARO,dry,sok,"[5, 10)","QC Int.2, 48-60 km/h",0.67,31,1.0
+FARO,dry,sok,"[5, 10)","Change, VBZ 2 sigma (height)",0.53,31,1.0
+FARO,dry,sok,"[5, 10)","Change, strict two-sided (height)",0.29,31,1.0
+FARO,dry,sok,"[10, 15)","QC Int.1/3, 48-60 km/h",1.22,6,0.8333333333333334
+FARO,dry,sok,"[10, 15)","QC Int.2, 48-60 km/h",0.67,6,0.8333333333333334
+FARO,dry,sok,"[10, 15)","Change, VBZ 2 sigma (height)",0.53,6,0.8333333333333334
+FARO,dry,sok,"[10, 15)","Change, strict two-sided (height)",0.29,6,0.8333333333333334
+RTC360,dry,sok,"[0, 5)","QC Int.1/3, 48-60 km/h",1.22,59,1.0
+RTC360,dry,sok,"[0, 5)","QC Int.2, 48-60 km/h",0.67,59,1.0
+RTC360,dry,sok,"[0, 5)","Change, VBZ 2 sigma (height)",0.53,59,1.0
+RTC360,dry,sok,"[0, 5)","Change, strict two-sided (height)",0.29,59,1.0
+RTC360,dry,sok,"[5, 10)","QC Int.1/3, 48-60 km/h",1.22,169,0.9881656804733728
+RTC360,dry,sok,"[5, 10)","QC Int.2, 48-60 km/h",0.67,169,0.9881656804733728
+RTC360,dry,sok,"[5, 10)","Change, VBZ 2 sigma (height)",0.53,169,0.9881656804733728
+RTC360,dry,sok,"[5, 10)","Change, strict two-sided (height)",0.29,169,0.9881656804733728
+RTC360,dry,sok,"[10, 15)","QC Int.1/3, 48-60 km/h",1.22,127,0.9763779527559056
+RTC360,dry,sok,"[10, 15)","QC Int.2, 48-60 km/h",0.67,127,0.9763779527559056
+RTC360,dry,sok,"[10, 15)","Change, VBZ 2 sigma (height)",0.53,127,0.9763779527559056
+RTC360,dry,sok,"[10, 15)","Change, strict two-sided (height)",0.29,127,0.968503937007874
+RTC360,dry,sok,"[15, 20)","QC Int.1/3, 48-60 km/h",1.22,123,0.943089430894309
+RTC360,dry,sok,"[15, 20)","QC Int.2, 48-60 km/h",0.67,123,0.943089430894309
+RTC360,dry,sok,"[15, 20)","Change, VBZ 2 sigma (height)",0.53,123,0.943089430894309
+RTC360,dry,sok,"[15, 20)","Change, strict two-sided (height)",0.29,123,0.9024390243902439
+RTC360,dry,sok,"[20, 30)","QC Int.1/3, 48-60 km/h",1.22,210,0.5714285714285714
+RTC360,dry,sok,"[20, 30)","QC Int.2, 48-60 km/h",0.67,210,0.5714285714285714
+RTC360,dry,sok,"[20, 30)","Change, VBZ 2 sigma (height)",0.53,210,0.5619047619047619
+RTC360,dry,sok,"[20, 30)","Change, strict two-sided (height)",0.29,210,0.5285714285714286
+RTC360,dry,sok,"[30, 40)","QC Int.1/3, 48-60 km/h",1.22,92,0.17391304347826086
+RTC360,dry,sok,"[30, 40)","QC Int.2, 48-60 km/h",0.67,92,0.17391304347826086
+RTC360,dry,sok,"[30, 40)","Change, VBZ 2 sigma (height)",0.53,92,0.17391304347826086
+RTC360,dry,sok,"[30, 40)","Change, strict two-sided (height)",0.29,92,0.14130434782608695

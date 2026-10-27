@@ -1,0 +1,17 @@
+scanner,condition,strip,criterion,quantity,limit,reached_end,p_pass,sigma_req_mm
+FARO,dry,sok,"Change, VBZ 2 sigma (height)",d_max_m,10.0,False,0.95,0.53
+FARO,dry,sok,"Change, strict two-sided (height)",d_max_m,10.0,False,0.95,0.29
+FARO,dry,sok,"QC Int.1/3, 48-60 km/h",d_max_m,10.0,False,0.95,1.22
+FARO,dry,sok,"QC Int.2, 48-60 km/h",d_max_m,10.0,False,0.95,0.67
+RTC360,dry,sok,"Change, VBZ 2 sigma (height)",d_max_m,15.0,False,0.95,0.53
+RTC360,dry,sok,"Change, strict two-sided (height)",d_max_m,15.0,False,0.95,0.29
+RTC360,dry,sok,"QC Int.1/3, 48-60 km/h",d_max_m,15.0,False,0.95,1.22
+RTC360,dry,sok,"QC Int.2, 48-60 km/h",d_max_m,15.0,False,0.95,0.67
+FARO,dry,sok,"Change, VBZ 2 sigma (height)",theta_max_deg,60.0,False,0.95,0.53
+FARO,dry,sok,"Change, strict two-sided (height)",theta_max_deg,60.0,False,0.95,0.29
+FARO,dry,sok,"QC Int.1/3, 48-60 km/h",theta_max_deg,60.0,False,0.95,1.22
+FARO,dry,sok,"QC Int.2, 48-60 km/h",theta_max_deg,60.0,False,0.95,0.67
+RTC360,dry,sok,"Change, VBZ 2 sigma (height)",theta_max_deg,70.0,False,0.95,0.53
+RTC360,dry,sok,"Change, strict two-sided (height)",theta_max_deg,70.0,False,0.95,0.29
+RTC360,dry,sok,"QC Int.1/3, 48-60 km/h",theta_max_deg,70.0,False,0.95,1.22
+RTC360,dry,sok,"QC Int.2, 48-60 km/h",theta_max_deg,70.0,False,0.95,0.67
