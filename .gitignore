@@ -3,4 +3,4 @@ __pycache__/
 demo/
 .venv/
 pointclouds/
-processing/results_sim*/
+processing/results/

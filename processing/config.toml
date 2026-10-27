@@ -1,0 +1,77 @@
+# Settings of the segment-wise point cloud quality analysis.
+# Every parameter of the processing is here; each result folder gets a copy of this file.
+# Paths are relative to this file.
+
+datasets = "datasets.csv"   # one row per point cloud (see datasets.csv)
+results = "results"         # output folder
+
+[input]
+mode = "railhead_only"      # "railhead_only" or "classified" (can be overridden per dataset)
+class_field = "classification"
+class_sok = 1               # railhead (SOK): the height strip
+class_lip = 2               # lip: optional second strip
+use_lip = false             # also analyse the lip strip (classified mode only)
+
+[rails]
+cell = 0.02                 # raster cell of the plan view [m]
+close = 0.15                # gaps up to about twice this are closed in the raster [m]
+max_hole = 0.05             # smaller holes in the raster are filled [m2]
+min_length = 2.0            # shorter rail pieces (components, branches) are dropped [m]
+link_gap = 1.0              # rail pieces whose ends face each other across a smaller gap are joined [m]
+link_angle = 15.0           # largest angle between the pieces and the gap [deg]
+smooth = 0.3                # moving average along the centreline [m]
+max_offset = 0.15           # points farther from every centreline are dropped [m]
+junction_buffer = 1.0       # segments this close to a junction (switch, frog) are flagged [m]
+
+[strip]
+width = 0.040               # running-surface strip width for railhead-only input, at most [m]
+edge_trim = 0.005           # removed at each edge of the strip [m]
+bin = 0.005                 # railhead-only: bins across the rail [m]
+quantile = 0.9              # railhead-only: height of a bin = this quantile of its residuals
+min_bin_points = 3          # railhead-only: bins with fewer points are empty
+head_band = 0.008           # railhead-only: bins this close to the highest bin are railhead or lip [m]
+search = 0.08               # railhead-only: railhead and lip are searched this far beside the groove [m]
+
+[segments]
+length = 0.5                # segment length along the rail [m]
+min_points = 30             # n_min: fewer points -> segment flagged, fails the criteria
+outlier_k = 3.0             # reject residuals beyond k * MAD of the first plane fit, then refit once
+cell_along = 0.010          # completeness grid along the rail [m]
+cell_across = 0.005         # completeness grid across the rail [m]
+
+[flags]
+max_outlier_share = 0.20
+max_theta_spread = 3.0      # [deg] within one segment
+min_completeness = 0.80
+
+[bins]
+distance = [0, 5, 10, 15, 20, 30, 40]         # horizontal distance d [m]
+incidence = [0, 60, 70, 75, 80, 85, 88, 90] # incidence angle theta [deg]
+
+[limits]
+p_pass = 0.95               # share of segments in a bin that must pass
+
+# Required standard deviation of one rail height (report, quality criteria and decision rules) [mm].
+# Add, remove or change lines freely.
+[[limits.criteria]]
+name = "QC Int.1/3, 48-60 km/h"
+sigma_req_mm = 1.22
+
+[[limits.criteria]]
+name = "QC Int.2, 48-60 km/h"
+sigma_req_mm = 0.67
+
+[[limits.criteria]]
+name = "Change, VBZ 2 sigma (height)"
+sigma_req_mm = 0.53
+
+[[limits.criteria]]
+name = "Change, strict two-sided (height)"
+sigma_req_mm = 0.29
+
+[geometry]
+cross_section_spacing = 5.0 # VBZ: cross-sections and twist base every 5 m
+b_sok = 1.0                 # distance between the two height strips on the running surface [m]
+b_lip = 0.9                 # same on the lip / groove head (VBZ Rillenkopf) [m]
+partner_across = [0.8, 1.3] # partner rail of a cross-section: this far across [m]
+partner_along = 0.25        # and at most this far along [m]

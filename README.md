@@ -1,8 +1,8 @@
 # GMP2
 Geomatics Master Project
 
-- `processing/00_simulate.py` … `07_operational_limits.py`: one pipeline from rail point clouds to point
-  density, point-cloud noise, rail heights with σ_z, cant, twist, versine and operational limits
-- `processing/shared/`: functions shared by the numbered scripts
+- `processing/`: segment-wise point cloud quality of the rails (point density, point noise sigma_z,
+  rail height precision, distance, incidence angle, cant and twist) per 0.5 m segment and scanner,
+  checked against the quality criteria. Run `python -m processing` from this folder.
 
-Setup, usage, method and results: [`processing/README.md`](processing/README.md).
+Setup, usage, method and outputs: [`processing/README.md`](processing/README.md).
