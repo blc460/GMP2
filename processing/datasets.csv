@@ -1,4 +1,4 @@
-path,scanner,setup,condition,platform,mode,angular_step_mrad,origin_x,origin_y,origin_z
-../pointclouds/Faro-track-test.e57,FARO,T1,dry,bridge,,,,,
-../pointclouds/RTC-test-1-091026.e57,RTC360,091026,dry,tripod,,,,,
-../pointclouds/Bu_RTC-2-091026_classified.laz,RTC360,T1,dry,bridge,classified,,6.26767057,3.13197906,3.14047302
+path,scanner,condition,origin_x,origin_y,origin_z
+../pointclouds/Bu_RTC-1-091026_classified.laz,RTC360,dry,36.68016737,3.38852818,0.00240766
+../pointclouds/Bu_RTC-2-091026_classified.laz,RTC360,dry,6.26767057,3.13197906,3.14047302
+../pointclouds/Bu_RTC-3-091026_classified.laz,RTC360,dry,-15.94500229,6.15724086,6.70225618

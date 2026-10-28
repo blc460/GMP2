@@ -3,8 +3,4 @@
 numpy>=1.24
 pandas>=2.0
 matplotlib>=3.7
-pye57>=0.4
-scipy>=1.10
-scikit-image>=0.21
-# optional, only for PLY input: plyfile>=1.0
-# optional, only for LAS/LAZ input: laspy[lazrs]>=2.4
+laspy[lazrs]>=2.4
