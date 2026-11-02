@@ -53,7 +53,8 @@ for ds in pd.read_csv(HERE / cfg["datasets"], keep_default_na=False).to_dict("re
         sigma, c, normal = plane(p[idx], cfg["outlier_k"])
         ray = c - origin
         theta = np.degrees(np.arccos(abs(ray @ normal) / np.linalg.norm(ray)))
-        rows.append(dict(scanner=ds["scanner"], condition=ds["condition"], x=c[0], y=c[1], n=len(idx),
+        rows.append(dict(dataset=Path(ds["path"]).stem, i=ij[idx[0], 0], j=ij[idx[0], 1],
+                         scanner=ds["scanner"], condition=ds["condition"], x=c[0], y=c[1], n=len(idx),
                          sigma_z_mm=1000 * sigma, d_m=np.hypot(ray[0], ray[1]), theta_deg=theta))
     t = pd.DataFrame(rows[start:])
     print(f"{ds['path']}: {len(p)} railhead points, {len(t)} cells, "

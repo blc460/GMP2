@@ -10,10 +10,12 @@ From the repository root:
 ```
 python processing/01_segments.py
 python processing/02_sigma_z_table.py
+python processing/03_map.py Bu_RTC-2
 ```
 
 Settings are in `config.toml`. `datasets.csv` has one row per point cloud
-(path, scanner, condition, scanner origin).
+(path, scanner, condition, scanner origin). The origin is the scan pose (translation)
+in the original E57 file of the scan, because LAS/LAZ does not store the scanner position.
 
 ## Method
 
@@ -31,3 +33,5 @@ Settings are in `config.toml`. `datasets.csv` has one row per point cloud
 - `01_segments.csv`: one row per cell
 - `02_sigma_z_table.csv`: the result table
 - `02_sigma_z.png`: sigma_z over distance and incidence angle
+- `03_map_<dataset>.laz`: railhead points of one cloud (named on the command line) with
+  sigma_z_cell_mm, sigma_z_bin_mm, d_m and theta_deg; NaN in cells that were skipped
