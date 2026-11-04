@@ -1,10 +1,14 @@
-# Settings of 01_segments.py and 02_sigma_z_table.py. Paths are relative to this file.
+# Settings of 01_segments.py, 02_sigma_z_table.py and 03_map.py. Paths are relative to this file.
 
 datasets = "datasets.csv"   # one row per classified point cloud
 results = "results"
 
 class_sok = 1               # classification of the railhead (running surface) points
-cell = 0.5                  # cell size in plan view [m]
+raster = 0.05               # plan-view raster for finding the rails [m]
+rail_gap = 0.2              # points closer than this belong to the same rail [m]
+window = 5.0                # rails are cut into windows of this length for the direction (PCA) [m]
+cell = 0.5                  # cell length along the rail [m]
+max_width = 0.12            # cells wider than this across the rail (switches, crossings) are dropped [m]
 min_points = 30             # cells with fewer points are skipped
 outlier_k = 3.0             # residuals beyond k * MAD are dropped once before the final plane fit
 distance = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]   # bins of the horizontal distance d [m]

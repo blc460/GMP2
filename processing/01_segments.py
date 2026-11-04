@@ -1,65 +1,50 @@
-"""Step 1: point noise sigma_z per 0.5 m x 0.5 m cell of the railhead points of each classified point cloud.
+"""Step 1: point noise sigma_z per 0.5 m cell along the rails, for the railhead points of each classified point cloud.
 
-Per cell: least-squares plane z = b0 + b1 x + b2 y, residuals beyond k MAD dropped once, plane
-refitted; sigma_z = 1.4826 MAD of all residuals of the final fit. d = horizontal distance from the
-scanner to the cell centroid, theta = angle between the scan ray and the plane normal.
+1. Ground plane: one plane through all railhead points (3 MAD rejection, refit); points and scanner
+   are rotated so that it is horizontal.
+2. Rails: connected groups of points in plan view, cut into windows and pieces; each piece is cut into
+   0.5 m cells along its main direction (PCA). Cells wider than `max_width` across the rail (switches,
+   crossings) are dropped.
+3. Per cell: least-squares plane z = b0 + b1 x + b2 y, residuals beyond k MAD dropped once, plane
+   refitted; sigma_z = 1.4826 MAD of all residuals of the final fit. d = horizontal distance from the
+   scanner to the cell centroid, theta = angle between the scan ray and the cell plane normal,
+   theta_ground = angle between the scan ray and the ground plane normal.
 
 Output: results/01_segments.csv
 """
 from pathlib import Path
-import tomllib
 
-import laspy
 import numpy as np
 import pandas as pd
 
-HERE = Path(__file__).parent
-with open(HERE / "config.toml", "rb") as f:
-    cfg = tomllib.load(f)
-
-
-def mad_sigma(e):
-    return 1.4826 * np.median(np.abs(e - np.median(e)))
-
-
-def plane(p, k):
-    """sigma_z, centroid and unit normal of the plane through the points p (n, 3)."""
-    c = p.mean(axis=0)
-    q = p - c
-    A = np.column_stack([np.ones(len(q)), q[:, 0], q[:, 1]])
-    b = np.linalg.lstsq(A, q[:, 2], rcond=None)[0]
-    e = q[:, 2] - A @ b
-    mad = mad_sigma(e)
-    if mad > 0:
-        keep = np.abs(e - np.median(e)) <= k * mad
-        b = np.linalg.lstsq(A[keep], q[keep, 2], rcond=None)[0]
-        e = q[:, 2] - A @ b
-    normal = np.array([-b[1], -b[2], 1.0])
-    return mad_sigma(e), c, normal / np.linalg.norm(normal)
-
+from cells import HERE, cfg, cells, level, plane, read, width
 
 rows = []
 for ds in pd.read_csv(HERE / cfg["datasets"], keep_default_na=False).to_dict("records"):
-    las = laspy.read(HERE / ds["path"])
-    p = np.column_stack([las.x, las.y, las.z])[np.asarray(las.classification) == cfg["class_sok"]]
-    origin = np.array([float(ds[k] or 0) for k in ("origin_x", "origin_y", "origin_z")])
-    start = len(rows)
-    ij = np.floor(p[:, :2] / cfg["cell"]).astype(int)
-    _, cell, n = np.unique(ij, axis=0, return_inverse=True, return_counts=True)
+    _, p0, origin0 = read(ds)
+    p, origin, tilt = level(p0, origin0)
+    rail, cell = cells(p)
+    start, dropped = len(rows), 0
     order = np.argsort(cell)
-    for idx in np.split(order, np.cumsum(n)[:-1]):
-        if len(idx) < cfg["min_points"]:
+    for idx in np.split(order, np.flatnonzero(np.diff(cell[order])) + 1):
+        if cell[idx[0]] < 0 or len(idx) < cfg["min_points"]:
+            continue
+        if width(p[idx, :2]) > cfg["max_width"]:
+            dropped += 1
             continue
         sigma, c, normal = plane(p[idx], cfg["outlier_k"])
         ray = c - origin
-        theta = np.degrees(np.arccos(abs(ray @ normal) / np.linalg.norm(ray)))
-        rows.append(dict(dataset=Path(ds["path"]).stem, i=ij[idx[0], 0], j=ij[idx[0], 1],
-                         scanner=ds["scanner"], condition=ds["condition"], x=c[0], y=c[1], n=len(idx),
-                         sigma_z_mm=1000 * sigma, d_m=np.hypot(ray[0], ray[1]), theta_deg=theta))
+        r = np.linalg.norm(ray)
+        c0 = p0[idx].mean(axis=0)
+        rows.append(dict(dataset=Path(ds["path"]).stem, cell=cell[idx[0]], rail=rail[idx[0]],
+                         scanner=ds["scanner"], condition=ds["condition"], x=c0[0], y=c0[1], n=len(idx),
+                         sigma_z_mm=1000 * sigma, d_m=np.hypot(ray[0], ray[1]),
+                         theta_deg=np.degrees(np.arccos(abs(ray @ normal) / r)),
+                         theta_ground_deg=np.degrees(np.arccos(abs(ray[2]) / r))))
     t = pd.DataFrame(rows[start:])
-    print(f"{ds['path']}: {len(p)} railhead points, {len(t)} cells, "
-          f"median sigma_z {t['sigma_z_mm'].median():.2f} mm, d {t['d_m'].min():.1f}-{t['d_m'].max():.1f} m, "
-          f"theta {t['theta_deg'].min():.0f}-{t['theta_deg'].max():.0f} deg")
+    print(f"{ds['path']}: ground plane tilt {tilt:.3f} deg, {len(p)} railhead points, {len(np.unique(rail))} rails, "
+          f"{len(t)} cells ({dropped} dropped as switch), median sigma_z {t['sigma_z_mm'].median():.2f} mm, "
+          f"d {t['d_m'].min():.1f}-{t['d_m'].max():.1f} m, theta {t['theta_deg'].min():.0f}-{t['theta_deg'].max():.0f} deg")
 
 out = HERE / cfg["results"]
 out.mkdir(exist_ok=True)
