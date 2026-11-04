@@ -28,7 +28,7 @@ name = Path(ds["path"]).stem
 segments = pd.read_csv(out / "01_segments.csv")
 segments = segments[segments["dataset"] == name].copy()
 segments["d_bin"] = pd.cut(segments["d_m"], cfg["distance"], right=False).astype(str)
-segments["theta_bin"] = pd.cut(segments["theta_deg"], cfg["incidence"], right=False).astype(str)
+segments["theta_bin"] = pd.cut(segments["theta_ground_deg"], cfg["incidence"], right=False).astype(str)
 table = pd.read_csv(out / "02_sigma_z_table.csv")
 keys = ["scanner", "d_bin", "theta_bin"] + (["condition"] if cfg["by_condition"] else [])
 segments = segments.merge(table[keys + ["sigma_z_median_mm"]], on=keys, how="left")

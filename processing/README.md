@@ -32,7 +32,7 @@ in the original E57 file of the scan, because LAS/LAZ does not store the scanner
    and the cell plane normal; theta_ground = angle between the scan ray and
    the ground plane normal.
 5. Table: median and quartiles of sigma_z per scanner, distance bin and
-   incidence bin (theta).
+   incidence bin (theta_ground).
 
 `cells.py` holds the steps shared by 01 and 03.
 
