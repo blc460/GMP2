@@ -27,7 +27,8 @@ in the original E57 file of the scan, because LAS/LAZ does not store the scanner
    direction (PCA). Cells wider than 0.12 m across the rail (switches,
    crossings) and cells with fewer than 30 points are dropped.
 3. Per cell: plane z = b0 + b1 x + b2 y, residuals beyond 3 MAD dropped once,
-   refit; sigma_z = 1.4826 MAD of the residuals.
+   refit; sigma_z = 1.4826 MAD of the residuals. Variant without plane:
+   sigma_z_med = 1.4826 MAD of the (levelled) heights about their median.
 4. d = horizontal distance scanner to cell; theta = angle between the scan ray
    and the cell plane normal; theta_ground = angle between the scan ray and
    the ground plane normal.
@@ -39,8 +40,9 @@ in the original E57 file of the scan, because LAS/LAZ does not store the scanner
 ## Output (`results/`)
 
 - `01_segments.csv`: one row per cell (with theta_deg and theta_ground_deg)
-- `02_sigma_z_table.csv`: the result table
+- `02_sigma_z_table.csv`: the result table (sigma_z_median_mm with plane,
+  sigma_z_med_median_mm without)
 - `02_sigma_z.png`: sigma_z over distance and incidence angle
 - `03_map_<dataset>.laz`: railhead points of one cloud (named on the command line) with
-  sigma_z_cell_mm, sigma_z_bin_mm, d_m, theta_deg and theta_ground_deg; NaN in cells that
+  sigma_z_cell_mm, sigma_z_med_cell_mm, sigma_z_bin_mm, d_m, theta_deg and theta_ground_deg; NaN in cells that
   were skipped or dropped

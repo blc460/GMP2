@@ -20,9 +20,10 @@ df["d_bin"] = pd.cut(df["d_m"], cfg["distance"], right=False)
 df["theta_bin"] = pd.cut(df["theta_ground_deg"], cfg["incidence"], right=False)
 keys = ["scanner"] + (["condition"] if cfg["by_condition"] else [])
 
-table = (df.groupby(keys + ["d_bin", "theta_bin"], observed=True)["sigma_z_mm"]
-         .agg(segments="size", sigma_z_median_mm="median",
-              sigma_z_q25_mm=lambda x: x.quantile(0.25), sigma_z_q75_mm=lambda x: x.quantile(0.75))
+g = df.groupby(keys + ["d_bin", "theta_bin"], observed=True)
+table = (g["sigma_z_mm"].agg(segments="size", sigma_z_median_mm="median",
+                             sigma_z_q25_mm=lambda x: x.quantile(0.25), sigma_z_q75_mm=lambda x: x.quantile(0.75))
+         .join(g["sigma_z_med_mm"].agg(sigma_z_med_median_mm="median"))      # variant without plane
          .round(3).reset_index())
 table.to_csv(out / "02_sigma_z_table.csv", index=False)
 print(table.to_string(index=False))

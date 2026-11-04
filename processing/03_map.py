@@ -3,7 +3,7 @@
 Usage: python processing/03_map.py Bu_RTC-2   (any part of the file name of one row of datasets.csv)
 
 Every railhead point gets the values of its cell (the same cells as in 01_segments.py): sigma_z_cell_mm
-(sigma_z of the cell), sigma_z_bin_mm (median sigma_z of the cell's scanner, distance bin and angle bin),
+(sigma_z of the cell), sigma_z_med_cell_mm (variant without plane), sigma_z_bin_mm (median sigma_z of the cell's scanner, distance bin and angle bin),
 d_m, theta_deg and theta_ground_deg. Points in cells that were skipped or dropped get NaN.
 
 Input: results/01_segments.csv, results/02_sigma_z_table.csv. Output: results/03_map_<dataset>.laz
@@ -37,7 +37,8 @@ las, p, origin = read(ds)
 _, cell = cells(level(p, origin)[0])
 points = pd.DataFrame(dict(cell=cell)).merge(segments, on="cell", how="left")
 
-for field, column in (("sigma_z_cell_mm", "sigma_z_mm"), ("sigma_z_bin_mm", "sigma_z_median_mm"),
+for field, column in (("sigma_z_cell_mm", "sigma_z_mm"), ("sigma_z_med_cell_mm", "sigma_z_med_mm"),
+                      ("sigma_z_bin_mm", "sigma_z_median_mm"),
                       ("d_m", "d_m"), ("theta_deg", "theta_deg"), ("theta_ground_deg", "theta_ground_deg")):
     las.add_extra_dim(laspy.ExtraBytesParams(name=field, type=np.float32))
     las[field] = points[column].to_numpy(np.float32)
