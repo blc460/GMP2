@@ -1,7 +1,7 @@
 """Optional: figure that explains how the cells along the rails are made and how switches are dropped.
 
 Usage: python processing/plot_cells.py Bu_RTC-2   (any part of the file name of one row of datasets.csv)
-Output: results/cells_explained.png and .pdf. Not part of the pipeline; the zoom windows below fit RTC-2.
+Output: results/<sok|lip>/cells_explained.png and .pdf. Not part of the pipeline; the zoom windows below fit RTC-2.
 """
 import sys
 
@@ -12,7 +12,7 @@ from matplotlib.patches import Patch
 import numpy as np
 import pandas as pd
 
-from cells import HERE, _axis, cells, cfg, level, read, width
+from cells import HERE, OUT, _axis, cells, cfg, level, read, width
 
 SWITCH = (17.0, 37.0, 3.4, 10.4)       # zoom windows (x0, x1, y0, y1) in the levelled frame [m]
 CURVE = (8.5, 19.0, -7.6, 3.6)
@@ -118,5 +118,5 @@ a.legend(fontsize=8)
 
 fig.tight_layout()
 for ext in ("png", "pdf"):
-    fig.savefig(HERE / cfg["results"] / f"cells_explained.{ext}", dpi=200)
-print(f"results/cells_explained.png: {len(w_cell)} cells, {np.sum(w > cfg['max_width'])} dropped")
+    fig.savefig(OUT / f"cells_explained.{ext}", dpi=200)
+print(f"{OUT / 'cells_explained.png'}: {len(w_cell)} cells, {np.sum(w > cfg['max_width'])} dropped")

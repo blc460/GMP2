@@ -9,6 +9,7 @@ from scipy import ndimage
 HERE = Path(__file__).parent
 with open(HERE / "config.toml", "rb") as f:
     cfg = tomllib.load(f)
+OUT = HERE / cfg["results"] / {1: "sok", 2: "lip"}.get(cfg["rail_class"], f"class{cfg['rail_class']}")
 
 
 def mad_sigma(e):
@@ -33,9 +34,9 @@ def plane(p, k):
 
 
 def read(ds):
-    """LAS data of the railhead points, their coordinates (n, 3) and the scanner origin (3,)."""
+    """LAS data of the points of `rail_class`, their coordinates (n, 3) and the scanner origin (3,)."""
     las = laspy.read(HERE / ds["path"])
-    las.points = las.points[np.asarray(las.classification) == cfg["class_sok"]]
+    las.points = las.points[np.asarray(las.classification) == cfg["rail_class"]]
     origin = np.array([float(ds[k] or 0) for k in ("origin_x", "origin_y", "origin_z")])
     return las, np.column_stack([las.x, las.y, las.z]), origin
 

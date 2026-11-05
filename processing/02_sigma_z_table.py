@@ -1,19 +1,14 @@
 """Step 2: table of sigma_z per scanner, distance bin and incidence bin (theta_ground, to the ground plane).
 
-Input: results/01_segments.csv. Output: results/02_sigma_z_table.csv and results/02_sigma_z.png
+Input: results/<sok|lip>/01_segments.csv.
+Output: results/<sok|lip>/02_sigma_z_table.csv and results/<sok|lip>/02_sigma_z.png
 """
-from pathlib import Path
-import tomllib
-
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
-HERE = Path(__file__).parent
-with open(HERE / "config.toml", "rb") as f:
-    cfg = tomllib.load(f)
-out = HERE / cfg["results"]
+from cells import OUT as out, cfg
 
 df = pd.read_csv(out / "01_segments.csv")
 df["d_bin"] = pd.cut(df["d_m"], cfg["distance"], right=False)

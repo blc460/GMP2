@@ -6,7 +6,7 @@ Every railhead point gets the values of its cell (the same cells as in 01_segmen
 (sigma_z of the cell), sigma_z_med_cell_mm (variant without plane), sigma_z_bin_mm (median sigma_z of the cell's scanner, distance bin and angle bin),
 d_m, theta_deg and theta_ground_deg. Points in cells that were skipped or dropped get NaN.
 
-Input: results/01_segments.csv, results/02_sigma_z_table.csv. Output: results/03_map_<dataset>.laz
+Input: results/<sok|lip>/01_segments.csv and 02_sigma_z_table.csv. Output: results/<sok|lip>/03_map_<dataset>.laz
 """
 from pathlib import Path
 import sys
@@ -15,9 +15,8 @@ import laspy
 import numpy as np
 import pandas as pd
 
-from cells import HERE, cfg, cells, level, read
+from cells import HERE, OUT as out, cfg, cells, level, read
 
-out = HERE / cfg["results"]
 datasets = pd.read_csv(HERE / cfg["datasets"], keep_default_na=False)
 ds = datasets[datasets["path"].str.contains(sys.argv[1], regex=False)]
 if len(ds) != 1:
@@ -44,4 +43,4 @@ for field, column in (("sigma_z_cell_mm", "sigma_z_mm"), ("sigma_z_med_cell_mm",
     las[field] = points[column].to_numpy(np.float32)
 target = out / f"03_map_{name}.laz"
 las.write(target)
-print(f"{target.name}: {len(points)} railhead points, {points['sigma_z_mm'].notna().mean():.1%} in a cell with sigma_z")
+print(f"{target.name}: {len(points)} points, {points['sigma_z_mm'].notna().mean():.1%} in a cell with sigma_z")

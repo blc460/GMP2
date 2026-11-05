@@ -11,14 +11,14 @@
    theta_ground = angle between the scan ray and the ground plane normal.
    Variant without plane: sigma_z_med = 1.4826 MAD of the levelled heights about their median (all points).
 
-Output: results/01_segments.csv
+Output: results/<sok|lip>/01_segments.csv
 """
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-from cells import HERE, cfg, cells, level, mad_sigma, plane, read, width
+from cells import HERE, OUT, cfg, cells, level, mad_sigma, plane, read, width
 
 rows = []
 for ds in pd.read_csv(HERE / cfg["datasets"], keep_default_na=False).to_dict("records"):
@@ -44,10 +44,9 @@ for ds in pd.read_csv(HERE / cfg["datasets"], keep_default_na=False).to_dict("re
                          theta_deg=np.degrees(np.arccos(abs(ray @ normal) / r)),
                          theta_ground_deg=np.degrees(np.arccos(abs(ray[2]) / r))))
     t = pd.DataFrame(rows[start:])
-    print(f"{ds['path']}: ground plane tilt {tilt:.3f} deg, {len(p)} railhead points, {len(np.unique(rail))} rails, "
+    print(f"{ds['path']}: ground plane tilt {tilt:.3f} deg, {len(p)} points of class {cfg["rail_class"]}, {len(np.unique(rail))} rails, "
           f"{len(t)} cells ({dropped} dropped as switch), median sigma_z {t['sigma_z_mm'].median():.2f} mm (no plane {t['sigma_z_med_mm'].median():.2f} mm), "
           f"d {t['d_m'].min():.1f}-{t['d_m'].max():.1f} m, theta {t['theta_deg'].min():.0f}-{t['theta_deg'].max():.0f} deg")
 
-out = HERE / cfg["results"]
-out.mkdir(exist_ok=True)
-pd.DataFrame(rows).to_csv(out / "01_segments.csv", index=False)
+OUT.mkdir(parents=True, exist_ok=True)
+pd.DataFrame(rows).to_csv(OUT / "01_segments.csv", index=False)

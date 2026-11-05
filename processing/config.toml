@@ -1,9 +1,9 @@
 # Settings of 01_segments.py, 02_sigma_z_table.py and 03_map.py. Paths are relative to this file.
 
 datasets = "datasets.csv"   # one row per classified point cloud
-results = "results"
+results = "results"         # output folder; the runs go into results/sok and results/lip
 
-class_sok = 1               # classification of the railhead (running surface) points
+rail_class = 1              # points used: 1 = SOK (railhead running surface), 2 = lip
 raster = 0.05               # plan-view raster for finding the rails [m]
 rail_gap = 0.2              # points closer than this belong to the same rail [m]
 window = 5.0                # rails are cut into windows of this length for the direction (PCA) [m]

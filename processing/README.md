@@ -6,7 +6,8 @@ distance and the incidence angle from the scanner, per scanner and setting.
 
 ## Input
 
-- Classified point clouds (LAZ), class 1 = railhead (running surface).
+- Classified point clouds (LAZ). `rail_class` in `config.toml` selects the
+  points: 1 = railhead (SOK, running surface), 2 = lip.
 - `datasets.csv`: one row per cloud: `path`, `scanner` (the line in the
   table, e.g. `RTC360` or `FARO 1/2 Q4`), `condition` (dry / wet) and
   `origin_x/y/z`, the scanner position. LAZ does not store it, so it is taken
@@ -47,9 +48,9 @@ python processing/03_map.py Bu_RTC-2
 
 `cells.py` holds steps 1 to 4, used by 01 and 03.
 Optional: `python processing/plot_cells.py Bu_RTC-2` draws how the cells and the
-switch rule work (`results/cells_explained.png`).
+switch rule work (`cells_explained.png`).
 
-## Output (`results/`)
+## Output (`results/sok/` or `results/lip/`, by `rail_class`)
 
 - `01_segments.csv`: one row per cell (sigma_z_mm, sigma_z_med_mm, n, d_m,
   theta_deg, theta_ground_deg, position)
