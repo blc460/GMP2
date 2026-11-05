@@ -41,6 +41,17 @@ def read(ds):
     return las, np.column_stack([las.x, las.y, las.z]), origin
 
 
+def angular_step(las, p, origin):
+    """Angular step of the scan grid [rad]: mean of the change of azimuth per ScanColumn and of
+    elevation per ScanRow, fitted on the points p (n, 3) seen from the scanner origin."""
+    v = p - origin
+    col, row = np.asarray(las.ScanColumn, float), np.asarray(las.ScanRow, float)
+    o = np.argsort(col)
+    az = np.unwrap(np.arctan2(v[o, 1], v[o, 0]))
+    el = np.arctan2(v[:, 2], np.hypot(v[:, 0], v[:, 1]))
+    return (abs(np.polyfit(col[o], az, 1)[0]) + abs(np.polyfit(row, el, 1)[0])) / 2
+
+
 def level(p, origin):
     """Rotate points and origin about the centroid so that the ground plane (one plane through all
     railhead points) is horizontal. Returns the levelled points, origin and the tilt [deg]."""
@@ -107,7 +118,11 @@ def cells(p):
 
 def width(xy):
     """Width of the points across their main direction (2 % to 98 % quantile) [m]."""
+    return extent(xy)[1]
+
+
+def extent(xy):
+    """Length along and width across the main direction of the points (2 % to 98 % quantile) [m]."""
     a = _axis(xy)
-    t = xy @ np.array([-a[1], a[0]])
-    lo, hi = np.quantile(t, [0.02, 0.98])
-    return hi - lo
+    q = np.quantile(np.column_stack([xy @ a, xy @ np.array([-a[1], a[0]])]), [0.02, 0.98], axis=0)
+    return q[1] - q[0]

@@ -1,0 +1,4 @@
+scanner,density_slope,intensity_slope,return_rate_below_05_from
+FARO 1/1 Q3,-2.2,-0.27,"[50, 55)"
+FARO 1/2 Q4,-2.34,-0.17,never
+RTC360,-2.4,-0.07,never

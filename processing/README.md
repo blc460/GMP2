@@ -22,6 +22,7 @@ From the repository root, in this order:
 python processing/01_segments.py
 python processing/02_sigma_z_table.py
 python processing/03_map.py Bu_RTC-2
+python processing/04_falloff.py
 ```
 
 ## Steps
@@ -50,12 +51,32 @@ python processing/03_map.py Bu_RTC-2
 Optional: `python processing/plot_cells.py Bu_RTC-2` draws how the cells and the
 switch rule work (`cells_explained.png`).
 
+## Falloff with range (04)
+
+`04_falloff.py` shows how density, intensity and noise change with the slant
+range r, per scanner line, in 5 m bins:
+
+- density = points per m2 of the strip; rho_exp = cos(theta_ground) / (r dphi)^2
+  is what the scan grid delivers on a horizontal surface (dphi is read from the
+  scan grid of each file); return rate = density / rho_exp.
+- intensity as stored in the file (RTC360 and FARO use different scales, so
+  only the trend is comparable); log-log slope of density and intensity vs r.
+- sigma_z, and sigma_r = sigma_z / cos(theta_ground), a rough noise along the
+  beam (it assumes all of sigma_z is range noise and grows at grazing angles).
+
+Comparing with a factsheet: the factsheet point spacing at 10 m is r dphi
+(e.g. 3 mm at 10 m = 0.3 mrad), which gives the expected density above. The
+factsheet range noise is measured along the beam on a flat, usually white
+target facing the scanner; here it is a steel rail seen at a flat angle, so
+sigma_r is expected to be higher.
+
 ## Output (`results/sok/` or `results/lip/`, by `rail_class`)
 
 - `01_segments.csv`: one row per cell (sigma_z_mm, sigma_z_med_mm, n, d_m,
   theta_deg, theta_ground_deg, position)
 - `02_sigma_z_table.csv`: the result table per scanner, distance and angle bin
 - `02_sigma_z.png`: sigma_z over distance and over incidence angle
+- `04_falloff.csv`, `04_falloff_summary.csv`, `04_falloff.png`: falloff with range
 - `03_map_<dataset>.laz`: railhead points with sigma_z per point, to view in
   CloudCompare (NaN where a cell was skipped or dropped)
 
