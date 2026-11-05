@@ -46,6 +46,8 @@ python processing/03_map.py Bu_RTC-2
 8. Map: the values are written back onto the railhead points of one cloud.
 
 `cells.py` holds steps 1 to 4, used by 01 and 03.
+Optional: `python processing/plot_cells.py Bu_RTC-2` draws how the cells and the
+switch rule work (`results/cells_explained.png`).
 
 ## Output (`results/`)
 

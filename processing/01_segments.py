@@ -24,7 +24,7 @@ rows = []
 for ds in pd.read_csv(HERE / cfg["datasets"], keep_default_na=False).to_dict("records"):
     _, p0, origin0 = read(ds)
     p, origin, tilt = level(p0, origin0)
-    rail, cell = cells(p)
+    rail, _, cell = cells(p)
     start, dropped = len(rows), 0
     order = np.argsort(cell)
     for idx in np.split(order, np.flatnonzero(np.diff(cell[order])) + 1):

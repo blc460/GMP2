@@ -71,13 +71,14 @@ def _axis(xy):
 
 
 def cells(p):
-    """Rail id and cell id per point (levelled points p). Rails are connected groups of points; each
+    """Rail id, piece id and cell id per point (levelled points p). Rails are connected groups of points; each
     rail is cut into windows of `window` along its main direction, each window again into connected
     pieces, and each piece into slabs of `cell` along its own main direction (PCA); a slab that cuts
     two rails gives one cell per rail."""
     rail = _labels(p[:, :2])
+    piece_id = np.full(len(p), -1)
     cell = np.full(len(p), -1)
-    n = 0
+    n = npiece = 0
     for r in np.unique(rail):
         idx = np.flatnonzero(rail == r)
         if len(idx) < 3:
@@ -91,6 +92,8 @@ def cells(p):
                 ip = iw[piece == q]
                 if len(ip) < 3:
                     continue
+                piece_id[ip] = npiece
+                npiece += 1
                 sp = p[ip, :2] @ _axis(p[ip, :2])
                 k = np.floor((sp - sp.min()) / cfg["cell"]).astype(int)
                 for kk in np.unique(k):                  # a slab can cut two rails: one cell per rail
@@ -98,7 +101,7 @@ def cells(p):
                     lab = _labels(p[ik, :2])
                     cell[ik] = n + lab - 1
                     n += lab.max()
-    return rail, cell
+    return rail, piece_id, cell
 
 
 def width(xy):

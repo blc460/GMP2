@@ -34,7 +34,7 @@ keys = ["scanner", "d_bin", "theta_bin"] + (["condition"] if cfg["by_condition"]
 segments = segments.merge(table[keys + ["sigma_z_median_mm"]], on=keys, how="left")
 
 las, p, origin = read(ds)
-_, cell = cells(level(p, origin)[0])
+_, _, cell = cells(level(p, origin)[0])
 points = pd.DataFrame(dict(cell=cell)).merge(segments, on="cell", how="left")
 
 for field, column in (("sigma_z_cell_mm", "sigma_z_mm"), ("sigma_z_med_cell_mm", "sigma_z_med_mm"),
