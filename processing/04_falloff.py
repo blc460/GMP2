@@ -54,7 +54,7 @@ ax[0, 0].set(yscale="log", ylabel="points per m2", title="density (dashed: expec
 ax[0, 1].set(ylabel="measured / expected", title="return rate")
 ax[0, 1].axhline(0.5, color="0.5", lw=0.8)
 ax[1, 0].set(yscale="log", ylabel="median intensity (as stored)", title="intensity (scales differ per scanner)")
-ax[1, 1].set(ylabel="mm", title="sigma_z (circles) and sigma_r = sigma_z / cos(theta_ground) (triangles)")
+ax[1, 1].set(ylabel="mm", title="noise: sigma_z (o), sigma_r = sigma_z / cos(theta_ground) (tri.)")
 for a in ax[1]:
     a.set_xlabel("slant range r [m]")
 for a in ax.ravel():
