@@ -10,8 +10,8 @@ station.
 - Classified point clouds (LAZ). `rail_class` in `config.toml` selects the
   points: 1 = railhead (SOK, running surface), 2 = lip.
 - `datasets.csv`: one row per cloud: `path`, `scanner` (the line in the
-  table, e.g. `RTC360` or `FARO 1/2 Q4`), `setup` (the station with the
-  scanner height above the rails, e.g. `S1 1.8 m`), `condition` (dry / wet) and
+  table, e.g. `RTC360` or `FARO 1/2 Q4`), `setup` (the station: `S1`, `S2`,
+  `S3`), `condition` (dry / wet) and
   `origin_x/y/z`, the scanner position. LAZ does not store it, so it is taken
   from the scan pose in the original E57 file.
 - `config.toml`: all settings (cell size, limits, bins). `by_setup = true`

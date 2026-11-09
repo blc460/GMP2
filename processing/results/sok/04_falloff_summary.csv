@@ -1,9 +1,9 @@
 scanner,setup,cells,density_slope,intensity_slope,return_rate_below_05_from
-FARO 1/1 Q3,S1 1.8 m,200,-3.1,-0.14,never
-FARO 1/1 Q3,S3 8.6 m,312,-3.43,-0.41,never
-FARO 1/2 Q4,S1 1.8 m,168,-3.09,-0.11,never
-FARO 1/2 Q4,S2 5.2 m,252,-3.21,-0.38,never
-FARO 1/2 Q4,S3 8.6 m,108,-3.27,-0.54,never
-RTC360,S1 1.8 m,252,-3.19,-1.04,never
-RTC360,S2 5.2 m,443,-3.34,-0.19,never
-RTC360,S3 8.6 m,104,-3.53,0.2,never
+FARO 1/1 Q3,S1,200,-3.1,-0.14,never
+FARO 1/1 Q3,S3,312,-3.43,-0.41,never
+FARO 1/2 Q4,S1,168,-3.09,-0.11,never
+FARO 1/2 Q4,S2,252,-3.21,-0.38,never
+FARO 1/2 Q4,S3,108,-3.27,-0.54,never
+RTC360,S1,252,-3.19,-1.04,never
+RTC360,S2,443,-3.34,-0.19,never
+RTC360,S3,104,-3.53,0.2,never

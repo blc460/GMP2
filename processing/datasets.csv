@@ -1,9 +1,9 @@
 path,scanner,setup,condition,origin_x,origin_y,origin_z
-../pointclouds/Bu_RTC-1-091026_classified.laz,RTC360,S1 1.8 m,dry,36.68016736594863,3.3885281828404223,0.0024076614041894534
-../pointclouds/Bu_RTC-2-091026_classified.laz,RTC360,S2 5.2 m,dry,6.267670565756704,3.131979059030778,3.1404730156255294
-../pointclouds/Bu_RTC-3-091026_classified.laz,RTC360,S3 8.6 m,dry,-15.945002287057413,6.157240864075639,6.702256177416958
-../pointclouds/Bu_FARO-1-0_80_3_1-091026_classified.laz,FARO 1/1 Q3,S1 1.8 m,dry,0,0,0
-../pointclouds/Bu_FARO-1-0_90_4_05-091026_classified.laz,FARO 1/2 Q4,S1 1.8 m,dry,0,0,0
-../pointclouds/Bu_FARO-2-0_90_4_05-091026_classified.laz,FARO 1/2 Q4,S2 5.2 m,dry,0,0,0
-../pointclouds/Bu_FARO-3-0_70_3_1-091026_classified.laz,FARO 1/1 Q3,S3 8.6 m,dry,0,0,0
-../pointclouds/Bu_FARO-3-0_70_4_05-091026_classified.laz,FARO 1/2 Q4,S3 8.6 m,dry,0,0,0
+../pointclouds/Bu_RTC-1-091026_classified.laz,RTC360,S1,dry,36.68016736594863,3.3885281828404223,0.0024076614041894534
+../pointclouds/Bu_RTC-2-091026_classified.laz,RTC360,S2,dry,6.267670565756704,3.131979059030778,3.1404730156255294
+../pointclouds/Bu_RTC-3-091026_classified.laz,RTC360,S3,dry,-15.945002287057413,6.157240864075639,6.702256177416958
+../pointclouds/Bu_FARO-1-0_80_3_1-091026_classified.laz,FARO 1/1 Q3,S1,dry,0,0,0
+../pointclouds/Bu_FARO-1-0_90_4_05-091026_classified.laz,FARO 1/2 Q4,S1,dry,0,0,0
+../pointclouds/Bu_FARO-2-0_90_4_05-091026_classified.laz,FARO 1/2 Q4,S2,dry,0,0,0
+../pointclouds/Bu_FARO-3-0_70_3_1-091026_classified.laz,FARO 1/1 Q3,S3,dry,0,0,0
+../pointclouds/Bu_FARO-3-0_70_4_05-091026_classified.laz,FARO 1/2 Q4,S3,dry,0,0,0
