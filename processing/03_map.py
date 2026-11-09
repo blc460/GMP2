@@ -3,7 +3,7 @@
 Usage: python processing/03_map.py Bu_RTC-2   (any part of the file name of one row of datasets.csv)
 
 Every railhead point gets the values of its cell (the same cells as in 01_segments.py): sigma_z_cell_mm
-(sigma_z of the cell), sigma_z_med_cell_mm (variant without plane), sigma_z_bin_mm (median sigma_z of the cell's scanner, distance bin and angle bin),
+(sigma_z of the cell), sigma_z_med_cell_mm (variant without plane), sigma_z_bin_mm (median sigma_z of the cell's table line, distance bin and angle bin),
 d_m, theta_deg and theta_ground_deg. Points in cells that were skipped or dropped get NaN.
 
 Input: results/<sok|lip>/01_segments.csv and 02_sigma_z_table.csv. Output: results/<sok|lip>/03_map_<dataset>.laz
@@ -15,7 +15,7 @@ import laspy
 import numpy as np
 import pandas as pd
 
-from cells import HERE, OUT as out, cfg, cells, level, read
+from cells import HERE, OUT as out, cfg, cells, group_keys, level, read
 
 datasets = pd.read_csv(HERE / cfg["datasets"], keep_default_na=False)
 ds = datasets[datasets["path"].str.contains(sys.argv[1], regex=False)]
@@ -29,7 +29,7 @@ segments = segments[segments["dataset"] == name].copy()
 segments["d_bin"] = pd.cut(segments["d_m"], cfg["distance"], right=False).astype(str)
 segments["theta_bin"] = pd.cut(segments["theta_ground_deg"], cfg["incidence"], right=False).astype(str)
 table = pd.read_csv(out / "02_sigma_z_table.csv")
-keys = ["scanner", "d_bin", "theta_bin"] + (["condition"] if cfg["by_condition"] else [])
+keys = group_keys() + ["d_bin", "theta_bin"]
 segments = segments.merge(table[keys + ["sigma_z_median_mm"]], on=keys, how="left")
 
 las, p, origin = read(ds)

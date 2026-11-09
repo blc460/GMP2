@@ -12,6 +12,12 @@ with open(HERE / "config.toml", "rb") as f:
 OUT = HERE / cfg["results"] / {1: "sok", 2: "lip"}.get(cfg["rail_class"], f"class{cfg['rail_class']}")
 
 
+def group_keys(by_setup=None):
+    """Columns that make one line of the tables: scanner, setup (station) and condition, as set in config.toml."""
+    by_setup = cfg["by_setup"] if by_setup is None else by_setup
+    return ["scanner"] + (["setup"] if by_setup else []) + (["condition"] if cfg["by_condition"] else [])
+
+
 def mad_sigma(e):
     return 1.4826 * np.median(np.abs(e - np.median(e)))
 

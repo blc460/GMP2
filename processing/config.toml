@@ -1,4 +1,4 @@
-# Settings of 01_segments.py, 02_sigma_z_table.py and 03_map.py. Paths are relative to this file.
+# Settings of the scripts 01 to 04. Paths are relative to this file.
 
 datasets = "datasets.csv"   # one row per classified point cloud
 results = "results"         # output folder; the runs go into results/sok and results/lip
@@ -13,4 +13,5 @@ min_points = 30             # cells with fewer points are skipped
 outlier_k = 3.0             # residuals beyond k * MAD are dropped once before the final plane fit
 distance = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]   # bins of the horizontal distance d [m]
 incidence = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]             # bins of the incidence angle theta_ground [deg]
-by_condition = false        # also split the table by rail condition (dry / wet)
+by_setup = true             # split the tables by station (setup column); a pooled table per scanner is written too
+by_condition = false        # also split the tables by rail condition (dry / wet)

@@ -2,17 +2,20 @@
 
 How noisy are the rail heights in a laser scan? For every 0.5 m piece of rail
 (a cell) the scripts compute the point noise sigma_z and relate it to the
-distance and the incidence angle from the scanner, per scanner and setting.
+distance and the incidence angle from the scanner, per scanner, setting and
+station.
 
 ## Input
 
 - Classified point clouds (LAZ). `rail_class` in `config.toml` selects the
   points: 1 = railhead (SOK, running surface), 2 = lip.
 - `datasets.csv`: one row per cloud: `path`, `scanner` (the line in the
-  table, e.g. `RTC360` or `FARO 1/2 Q4`), `condition` (dry / wet) and
+  table, e.g. `RTC360` or `FARO 1/2 Q4`), `setup` (the station with the
+  scanner height above the rails, e.g. `S1 1.8 m`), `condition` (dry / wet) and
   `origin_x/y/z`, the scanner position. LAZ does not store it, so it is taken
   from the scan pose in the original E57 file.
-- `config.toml`: all settings (cell size, limits, bins).
+- `config.toml`: all settings (cell size, limits, bins). `by_setup = true`
+  splits the tables by station, `by_condition` by dry / wet.
 
 ## Run
 
@@ -44,7 +47,8 @@ python processing/04_falloff.py
 6. Geometry per cell: horizontal distance d from the scanner, and incidence
    angle theta_ground between the laser beam and the ground plane normal
    (the angle to the cell plane, theta, is stored too).
-7. Table: median sigma_z per scanner line in bins of 5 m and 10 degrees.
+7. Table: median sigma_z per scanner and station in bins of 5 m and 10
+   degrees; a pooled table per scanner is written as a summary.
 8. Map: the values are written back onto the railhead points of one cloud.
 
 `cells.py` holds steps 1 to 4, used by 01 and 03.
@@ -54,7 +58,7 @@ switch rule work (`cells_explained.png`).
 ## Falloff with range (04)
 
 `04_falloff.py` shows how density, intensity and noise change with the slant
-range r, per scanner line, in 5 m bins:
+range r, per scanner and station, in 5 m bins:
 
 - density = points per m2 of the strip; rho_exp = cos(theta_ground) / (r dphi)^2
   is what the scan grid delivers on a horizontal surface (dphi is read from the
@@ -74,13 +78,21 @@ sigma_r is expected to be higher.
 
 - `01_segments.csv`: one row per cell (sigma_z_mm, sigma_z_med_mm, n, d_m,
   theta_deg, theta_ground_deg, position)
-- `02_sigma_z_table.csv`: the result table per scanner, distance and angle bin
+- `02_sigma_z_table.csv`: the result table per scanner, station, distance and
+  angle bin; `02_sigma_z_table_pooled.csv`: the same without station
 - `02_sigma_z.png`: sigma_z over distance and over incidence angle
-- `04_falloff.csv`, `04_falloff_summary.csv`, `04_falloff.png`: falloff with range
+- `04_falloff.csv`, `04_falloff_summary.csv`, `04_falloff.png`: falloff with
+  range per scanner and station; `04_falloff_pooled.csv` without station
 - `03_map_<dataset>.laz`: railhead points with sigma_z per point, to view in
   CloudCompare (NaN where a cell was skipped or dropped)
 
 ## Notes
+
+- Stations are reported separately: at the same distance and angle they
+  differ by a factor of about 1.5 to 3 (station 1, 1.8 m above the rails, is
+  the best for both scanners), and they cover different distances. A table
+  pooled over stations mixes this and is only a summary. With three stations
+  the cause (scanner height or platform, position) cannot be separated.
 
 - B is about 20-30 % higher than A: it also contains the slope of the rail
   within the cell (along and across). A is the better measure of scanner noise.

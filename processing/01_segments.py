@@ -46,7 +46,7 @@ for ds in pd.read_csv(HERE / cfg["datasets"], keep_default_na=False).to_dict("re
         cos_g = abs(ray[2]) / r
         rho_exp = cos_g / (r * dphi) ** 2
         rows.append(dict(dataset=Path(ds["path"]).stem, cell=cell[idx[0]], rail=rail[idx[0]],
-                         scanner=ds["scanner"], condition=ds["condition"], x=c0[0], y=c0[1], n=len(idx),
+                         scanner=ds["scanner"], setup=ds["setup"], condition=ds["condition"], x=c0[0], y=c0[1], n=len(idx),
                          sigma_z_mm=1000 * sigma, sigma_z_med_mm=1000 * mad_sigma(p[idx, 2]),
                          d_m=np.hypot(ray[0], ray[1]),
                          theta_deg=np.degrees(np.arccos(abs(ray @ normal) / r)),
