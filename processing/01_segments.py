@@ -11,8 +11,9 @@
    theta_ground = angle between the scan ray and the ground plane normal.
    Variant without plane: sigma_z_med = 1.4826 MAD of the levelled heights about their median (all points).
 4. Density per cell: n / (length * width), both 2 % to 98 % of the points along and across the rail;
-   expected density on a horizontal surface rho_exp = cos(theta_ground) / (r * dphi)^2 with the slant range r
-   and the angular step dphi of the scan grid; return_rate = density / rho_exp; median intensity (as stored).
+   expected density on a horizontal surface rho_exp = cos(theta_ground) / (r * d * dphi^2) with the slant
+   range r, the horizontal distance d and the angular step dphi of the scan grid (point spacing r * dphi
+   along the beam's vertical sweep, d * dphi between columns); return_rate = density / rho_exp; median intensity (as stored).
 
 Output: results/<sok|lip>/01_segments.csv
 """
@@ -44,7 +45,7 @@ for ds in pd.read_csv(HERE / cfg["datasets"], keep_default_na=False).to_dict("re
         c0 = p0[idx].mean(axis=0)
         length, wid = extent(p[idx, :2])
         cos_g = abs(ray[2]) / r
-        rho_exp = cos_g / (r * dphi) ** 2
+        rho_exp = cos_g / (r * np.hypot(ray[0], ray[1]) * dphi ** 2)
         rows.append(dict(dataset=Path(ds["path"]).stem, cell=cell[idx[0]], rail=rail[idx[0]],
                          scanner=ds["scanner"], setup=ds["setup"], condition=ds["condition"], x=c0[0], y=c0[1], n=len(idx),
                          sigma_z_mm=1000 * sigma, sigma_z_med_mm=1000 * mad_sigma(p[idx, 2]),

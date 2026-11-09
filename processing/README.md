@@ -60,7 +60,7 @@ switch rule work (`cells_explained.png`).
 `04_falloff.py` shows how density, intensity and noise change with the slant
 range r, per scanner and station, in 5 m bins:
 
-- density = points per m2 of the strip; rho_exp = cos(theta_ground) / (r dphi)^2
+- density = points per m2 of the strip; rho_exp = cos(theta_ground) / (r d dphi^2)
   is what the scan grid delivers on a horizontal surface (dphi is read from the
   scan grid of each file); return rate = density / rho_exp.
 - intensity as stored in the file (RTC360 and FARO use different scales, so
