@@ -3,8 +3,8 @@
 Usage: python processing/03_map.py Bu_RTC-2   (any part of the file name of one row of datasets.csv)
 
 Every railhead point gets the values of its cell (the same cells as in 01_segments.py): sigma_z_cell_mm
-(sigma_z of the cell), sigma_z_med_cell_mm (variant without plane), sigma_z_bin_mm (median sigma_z of the cell's table line, distance bin and angle bin),
-d_m, theta_deg and theta_ground_deg. Points in cells that were skipped or dropped get NaN.
+(sigma_z of the cell), sigma_z_med_cell_mm (variant without plane), sigma_z_bin_mm (median sigma_z of the cell's table line, range bin and angle bin),
+r_m, theta_deg and theta_ground_deg. Points in cells that were skipped or dropped get NaN.
 
 Input: results/<sok|lip>/01_segments.csv and 02_sigma_z_table.csv. Output: results/<sok|lip>/03_map_<dataset>.laz
 """
@@ -26,10 +26,10 @@ name = Path(ds["path"]).stem
 
 segments = pd.read_csv(out / "01_segments.csv")
 segments = segments[segments["dataset"] == name].copy()
-segments["d_bin"] = pd.cut(segments["d_m"], cfg["distance"], right=False).astype(str)
+segments["r_bin"] = pd.cut(segments["r_m"], cfg["distance"], right=False).astype(str)
 segments["theta_bin"] = pd.cut(segments["theta_ground_deg"], cfg["incidence"], right=False).astype(str)
 table = pd.read_csv(out / "02_sigma_z_table.csv")
-keys = group_keys() + ["d_bin", "theta_bin"]
+keys = group_keys() + ["r_bin", "theta_bin"]
 segments = segments.merge(table[keys + ["sigma_z_median_mm"]], on=keys, how="left")
 
 las, p, origin = read(ds)
@@ -38,7 +38,7 @@ points = pd.DataFrame(dict(cell=cell)).merge(segments, on="cell", how="left")
 
 for field, column in (("sigma_z_cell_mm", "sigma_z_mm"), ("sigma_z_med_cell_mm", "sigma_z_med_mm"),
                       ("sigma_z_bin_mm", "sigma_z_median_mm"),
-                      ("d_m", "d_m"), ("theta_deg", "theta_deg"), ("theta_ground_deg", "theta_ground_deg")):
+                      ("r_m", "r_m"), ("theta_deg", "theta_deg"), ("theta_ground_deg", "theta_ground_deg")):
     las.add_extra_dim(laspy.ExtraBytesParams(name=field, type=np.float32))
     las[field] = points[column].to_numpy(np.float32)
 target = out / f"03_map_{name}.laz"

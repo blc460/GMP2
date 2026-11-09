@@ -2,7 +2,7 @@
 
 How noisy are the rail heights in a laser scan? For every 0.5 m piece of rail
 (a cell) the scripts compute the point noise sigma_z and relate it to the
-distance and the incidence angle from the scanner, per scanner, setting and
+slant range and the incidence angle from the scanner, per scanner, setting and
 station.
 
 ## Input
@@ -44,7 +44,7 @@ python processing/04_falloff.py
      once, fit again; sigma_z = 1.4826 MAD of the residuals.
    - B (no model): sigma_z_med = 1.4826 MAD of the heights around their
      median.
-6. Geometry per cell: horizontal distance d from the scanner, and incidence
+6. Geometry per cell: slant range r from the scanner to the cell centre, and incidence
    angle theta_ground between the laser beam and the ground plane normal
    (the angle to the cell plane, theta, is stored too).
 7. Table: median sigma_z per scanner and station in bins of 5 m and 10
@@ -60,7 +60,7 @@ switch rule work (`cells_explained.png`).
 `04_falloff.py` shows how density, intensity and noise change with the slant
 range r, per scanner and station, in 5 m bins:
 
-- density = points per m2 of the strip; rho_exp = cos(theta_ground) / (r d dphi^2)
+- density = points per m2 of the strip; rho_exp = cos(theta_ground) / (r^2 sin(theta_ground) dphi^2)
   is what the scan grid delivers on a horizontal surface (dphi is read from the
   scan grid of each file); return rate = density / rho_exp.
 - intensity as stored in the file (RTC360 and FARO use different scales, so
@@ -76,11 +76,11 @@ sigma_r is expected to be higher.
 
 ## Output (`results/sok/` or `results/lip/`, by `rail_class`)
 
-- `01_segments.csv`: one row per cell (sigma_z_mm, sigma_z_med_mm, n, d_m,
+- `01_segments.csv`: one row per cell (sigma_z_mm, sigma_z_med_mm, n, r_m,
   theta_deg, theta_ground_deg, position)
-- `02_sigma_z_table.csv`: the result table per scanner, station, distance and
+- `02_sigma_z_table.csv`: the result table per scanner, station, slant range and
   angle bin; `02_sigma_z_table_pooled.csv`: the same without station
-- `02_sigma_z.png`: sigma_z over distance and over incidence angle
+- `02_sigma_z.png`: sigma_z over slant range and over incidence angle
 - `04_falloff.csv`, `04_falloff_summary.csv`, `04_falloff.png`: falloff with
   range per scanner and station; `04_falloff_pooled.csv` without station
 - `03_map_<dataset>.laz`: railhead points with sigma_z per point, to view in
@@ -88,9 +88,9 @@ sigma_r is expected to be higher.
 
 ## Notes
 
-- Stations are reported separately: at the same distance and angle they
+- Stations are reported separately: at the same range and angle they
   differ by a factor of about 1.5 to 3 (station 1, 1.8 m above the rails, is
-  the best for both scanners), and they cover different distances. A table
+  the best for both scanners), and they cover different ranges. A table
   pooled over stations mixes this and is only a summary. With three stations
   the cause (scanner height or platform, position) cannot be separated.
 
