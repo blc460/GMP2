@@ -1,8 +1,9 @@
 """Step 5: figures per scanner and station, and per scanner pooled over the stations (three separate plots each).
 
-- density_theta: point density [pts/dm2 = points per 10 x 10 cm] over the incidence angle theta_ground;
-  dots = cells, line = median per 10 deg bin, dashed = expected from the scan grid (rho_exp). The density
-  of a cell is n / (length * width), both from 2 % to 98 % of its points along and across the rail.
+- density_theta: point density [pts/m2] over the incidence angle theta_ground, right axis = mean point
+  spacing 1000 / sqrt(density) [mm]; dots = cells, line = median per 10 deg bin, dashed = expected from the
+  scan grid (rho_exp). The density of a cell is n / (length * width), both from 2 % to 98 % of its points
+  along and across the rail.
 - density_r: the same over the slant range r (5 m bins).
 - sigma_r_theta: the cells at their slant range r and angle theta_ground, colour = sigma_z (log scale,
   0.3 to 3 mm, the same in all figures).
@@ -13,6 +14,7 @@ Input: results/<sok|lip>/01_segments.csv. Output: results/<sok|lip>/figures/05_<
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import matplotlib.ticker
 from matplotlib.colors import LogNorm
 import numpy as np
 import pandas as pd
@@ -20,15 +22,13 @@ import pandas as pd
 from cells import OUT, cfg
 
 df = pd.read_csv(OUT / "01_segments.csv")
-df["density_dm2"] = df["density_pts_m2"] / 100                               # pts per dm2 (10 x 10 cm)
-df["expected_dm2"] = df["rho_exp_pts_m2"] / 100
 folder = OUT / "figures"
 folder.mkdir(exist_ok=True)
 EDGES = dict(theta_ground_deg=np.array(cfg["incidence"]), r_m=np.array(cfg["distance"]))
 LABELS = dict(theta_ground_deg="incidence angle theta_ground [deg]", r_m="slant range r [m]")
 MARKERS = dict(zip(sorted(df["setup"].unique()), "os^D"))
 COLOURS = dict(zip(sorted(df["setup"].unique()), ["tab:blue", "tab:orange", "tab:green", "tab:purple"]))
-D_LIM = (df["density_dm2"].min() / 2, df["density_dm2"].max() * 2)
+D_LIM = (df["density_pts_m2"].min() / 2, df["density_pts_m2"].max() * 2)
 NORM = LogNorm(0.3, 3.0)
 CLASS = {1: "railhead (SOK)", 2: "lip"}.get(cfg["rail_class"], f"class {cfg['rail_class']}")
 
@@ -42,14 +42,17 @@ def save(fig, name, plot):
 def density(g, x, title, name, plot):
     fig, a = plt.subplots(figsize=(6.8, 4.5))
     for st, gs in g.groupby("setup"):
-        a.scatter(gs[x], gs["density_dm2"], s=8, alpha=0.35, color=COLOURS[st], marker=MARKERS[st],
+        a.scatter(gs[x], gs["density_pts_m2"], s=8, alpha=0.35, color=COLOURS[st], marker=MARKERS[st],
                   label=f"cells {st}" if g["setup"].nunique() > 1 else "cells")
-    med = g.groupby(pd.cut(g[x], EDGES[x], right=False), observed=True)[[x, "density_dm2", "expected_dm2"]].median()
-    a.plot(med[x], med["density_dm2"], "o-", color="navy", lw=2, label="median measured")
-    a.plot(med[x], med["expected_dm2"], "k--", label="expected from the scan grid")
+    med = g.groupby(pd.cut(g[x], EDGES[x], right=False), observed=True)[[x, "density_pts_m2", "rho_exp_pts_m2"]].median()
+    a.plot(med[x], med["density_pts_m2"], "o-", color="navy", lw=2, label="median measured")
+    a.plot(med[x], med["rho_exp_pts_m2"], "k--", label="expected from the scan grid")
     a.set(yscale="log", ylim=D_LIM, xlim=(EDGES[x][0], EDGES[x][-1]), xlabel=LABELS[x],
-          ylabel="point density [pts/dm2]", title=title)
-    a.secondary_yaxis("right", functions=(lambda v: v * 100, lambda v: v / 100)).set_ylabel("point density [pts/m2]")
+          ylabel="point density [pts/m2]", title=title)
+    sec = a.secondary_yaxis("right", functions=(lambda v: 1000 / np.sqrt(np.maximum(v, 1e-9)), lambda s: 1e6 / np.square(np.maximum(s, 1e-9))))
+    sec.set_ylabel("mean point spacing [mm]")
+    sec.set_yticks([1, 2, 3, 5, 10, 20, 30, 50], ["1", "2", "3", "5", "10", "20", "30", "50"])
+    sec.yaxis.set_minor_locator(matplotlib.ticker.NullLocator())
     a.grid(alpha=0.3, which="both")
     a.legend(fontsize=7)
     save(fig, name, plot)

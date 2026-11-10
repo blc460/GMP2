@@ -60,7 +60,7 @@ switch rule work (`cells_explained.png`).
 `04_falloff.py` shows how density, intensity and noise change with the slant
 range r, per scanner and station, in 5 m bins:
 
-- density = points per m2 of the strip; rho_exp = cos(theta_ground) / (r^2 sin(theta_ground) dphi^2)
+- density = points per m2 of the strip (mean point spacing 1000 / sqrt(density) in mm); rho_exp = cos(theta_ground) / (r^2 sin(theta_ground) dphi^2)
   is what the scan grid delivers on a horizontal surface (dphi is read from the
   scan grid of each file); return rate = density / rho_exp.
 - intensity as stored in the file (RTC360 and FARO use different scales, so
@@ -79,12 +79,14 @@ sigma_r is expected to be higher.
 `05_plots.py` draws three separate plots per scanner and station, and per
 scanner pooled over the stations (marker = station), into `figures/`:
 
-- point density in pts/dm2 (points per 10 x 10 cm; right axis in pts/m2) over
-  theta_ground and over r: cells, median per bin, dashed = expected from the
-  scan grid. The density of a cell is n / (length x width), with length and
-  width from 2 % to 98 % of its points along and across the rail (typically
-  0.48 m x 0.042 m = 0.020 m2 on the railhead, 0.48 m x 0.016 m = 0.008 m2 on
-  the lip), not the nominal 0.5 m cell.
+- point density in pts/m2 over theta_ground and over r, right axis = mean
+  point spacing in mm = 1000 / sqrt(pts/m2): cells, median per bin, dashed =
+  expected from the scan grid. The density of a cell is n / (length x width),
+  with length and width from 2 % to 98 % of its points along and across the
+  rail (typically 0.48 m x 0.042 m = 0.020 m2 on the railhead, 0.48 m x
+  0.016 m = 0.008 m2 on the lip), not the nominal 0.5 m cell. The spacing is a
+  mean: at flat angles the points are much farther apart along the beam
+  direction than between scan columns.
 - sigma_z at each cell's r and theta_ground (colour, log scale 0.3 to 3 mm,
   the same in all figures).
 

@@ -1,6 +1,6 @@
 """Step 4: how fast point density, intensity and noise fall off with the slant range r, per scanner and station.
 
-Per r bin: median density, expected density rho_exp, return rate, intensity, sigma_z and the noise along
+Per r bin: median density, expected density rho_exp, mean point spacing 1000 / sqrt(density) [mm], return rate, intensity, sigma_z and the noise along
 the beam sigma_r = sigma_z / cos(theta_ground) (approximate: assumes all of sigma_z comes from range noise;
 it grows without bound at grazing incidence). Per scanner line: log-log slope of density and intensity
 against r (least squares over the cells) and the first r bin in which the median return rate is below 0.5.
@@ -11,6 +11,7 @@ Output: results/<sok|lip>/04_falloff.csv, 04_falloff_summary.csv (and 04_falloff
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import matplotlib.ticker
 import numpy as np
 import pandas as pd
 
@@ -18,8 +19,10 @@ from cells import OUT, cfg, group_keys
 
 df = pd.read_csv(OUT / "01_segments.csv")
 df["sigma_r_mm"] = df["sigma_z_mm"] / np.cos(np.radians(df["theta_ground_deg"]))
+df["spacing_mm"] = 1000 / np.sqrt(df["density_pts_m2"])                   # mean point spacing
+df["spacing_exp_mm"] = 1000 / np.sqrt(df["rho_exp_pts_m2"])
 df["r_bin"] = pd.cut(df["r_m"], cfg["distance"], right=False)
-cols = ["density_pts_m2", "rho_exp_pts_m2", "return_rate", "intensity", "sigma_z_mm", "sigma_r_mm"]
+cols = ["density_pts_m2", "rho_exp_pts_m2", "spacing_mm", "spacing_exp_mm", "return_rate", "intensity", "sigma_z_mm", "sigma_r_mm"]
 def falloff(keys):
     return (df.groupby(keys + ["r_bin"], observed=True)
             .agg(cells=("n", "size"), r_m=("r_m", "median"), **{c: (c, "median") for c in cols})
@@ -63,6 +66,10 @@ for key, t in table.groupby(keys):
     ax[1, 1].plot(t["r_m"], t["sigma_z_mm"], **k)
     ax[1, 1].plot(t["r_m"], t["sigma_r_mm"], color=colours[sc], marker=k["marker"], ms=3, ls=":", mfc="none")
 ax[0, 0].set(yscale="log", ylabel="points per m2", title="density (dashed: expected from the scan grid)")
+sec = ax[0, 0].secondary_yaxis("right", functions=(lambda v: 1000 / np.sqrt(np.maximum(v, 1e-9)), lambda s: 1e6 / np.square(np.maximum(s, 1e-9))))
+sec.set_ylabel("mean point spacing [mm]")
+sec.set_yticks([1, 2, 3, 5, 10, 20, 30, 50], ["1", "2", "3", "5", "10", "20", "30", "50"])
+sec.yaxis.set_minor_locator(matplotlib.ticker.NullLocator())
 ax[0, 1].set(ylabel="measured / expected", title="return rate")
 ax[0, 1].axhline(0.5, color="0.5", lw=0.8)
 ax[1, 0].set(yscale="log", ylabel="median intensity (as stored)", title="intensity (scales differ per scanner)")
