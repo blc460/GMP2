@@ -26,6 +26,7 @@ python processing/01_segments.py
 python processing/02_sigma_z_table.py
 python processing/03_map.py Bu_RTC-2
 python processing/04_falloff.py
+python processing/05_plots.py
 ```
 
 ## Steps
@@ -73,6 +74,14 @@ factsheet range noise is measured along the beam on a flat, usually white
 target facing the scanner; here it is a steel rail seen at a flat angle, so
 sigma_r is expected to be higher.
 
+## Figures per scanner and station (05)
+
+`05_plots.py` draws three separate plots per scanner and station, and per
+scanner pooled over the stations (marker = station), into `figures/`:
+returns per 0.5 m cell over theta_ground and over r (cells, median per bin,
+dashed = expected from the scan grid), and sigma_z at each cell's r and
+theta_ground (colour, log scale 0.3 to 3 mm, the same in all figures).
+
 ## Output (`results/sok/` or `results/lip/`, by `rail_class`)
 
 - `01_segments.csv`: one row per cell (sigma_z_mm, n, r_m, theta_ground_deg,
@@ -82,6 +91,8 @@ sigma_r is expected to be higher.
 - `02_sigma_z.png`: sigma_z over slant range and over incidence angle
 - `04_falloff.csv`, `04_falloff_summary.csv`, `04_falloff.png`: falloff with
   range per scanner and station; `04_falloff_pooled.csv` without station
+- `figures/05_<scanner>_<station>_<plot>.png`: returns and sigma_z per scanner and
+  station, and pooled per scanner
 - `03_map_<dataset>.laz`: railhead points with sigma_z per point, to view in
   CloudCompare (NaN where a cell was skipped or dropped)
 
