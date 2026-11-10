@@ -39,14 +39,13 @@ python processing/04_falloff.py
    Cells with fewer than `min_points` (30) points are skipped.
 4. Drop switches: a cell wider than `max_width` (0.12 m) across the rail holds
    more than one railhead (switch, crossing) and is dropped.
-5. sigma_z per cell, two variants:
-   - A (main result): fit a plane to the heights, drop points beyond 3 MAD
-     once, fit again; sigma_z = 1.4826 MAD of the residuals.
-   - B (no model): sigma_z_med = 1.4826 MAD of the heights around their
-     median.
+5. sigma_z per cell: the median of the levelled heights of the cell, and
+   sigma_z = 1.4826 MAD of all heights around it (no model per cell).
+   Optional (`plane_fit = true`): fit a plane per cell, drop points beyond
+   3 MAD once, fit again; sigma_z_plane = 1.4826 MAD of the residuals.
 6. Geometry per cell: slant range r from the scanner to the cell centre, and incidence
    angle theta_ground between the laser beam and the ground plane normal
-   (the angle to the cell plane, theta, is stored too).
+   (with `plane_fit`, also theta to the cell plane).
 7. Table: median sigma_z per scanner and station in bins of 5 m and 10
    degrees; a pooled table per scanner is written as a summary.
 8. Map: the values are written back onto the railhead points of one cloud.
@@ -76,8 +75,8 @@ sigma_r is expected to be higher.
 
 ## Output (`results/sok/` or `results/lip/`, by `rail_class`)
 
-- `01_segments.csv`: one row per cell (sigma_z_mm, sigma_z_med_mm, n, r_m,
-  theta_deg, theta_ground_deg, position)
+- `01_segments.csv`: one row per cell (sigma_z_mm, n, r_m, theta_ground_deg,
+  density, position; with `plane_fit` also sigma_z_plane_mm and theta_deg)
 - `02_sigma_z_table.csv`: the result table per scanner, station, slant range and
   angle bin; `02_sigma_z_table_pooled.csv`: the same without station
 - `02_sigma_z.png`: sigma_z over slant range and over incidence angle
@@ -94,10 +93,11 @@ sigma_r is expected to be higher.
   pooled over stations mixes this and is only a summary. With three stations
   the cause (scanner height or platform, position) cannot be separated.
 
-- B is about 20-30 % higher than A: it also contains the slope of the rail
-  within the cell (along and across). A is the better measure of scanner noise.
-- The plane cannot follow the crown of the railhead, so A is still slightly
-  too high (about 0.1-0.2 mm).
+- sigma_z uses the heights after the global levelling, without a model per
+  cell (chosen for simplicity and transparency). It therefore also contains
+  the slope of the rail within the 0.5 m cell (rail inclination 1:40, cant,
+  gradient) and is about 20-30 % higher than the optional plane fit, which
+  removes this slope (but not the crown of the railhead).
 - RTC360 stores heights in 1 mm steps; in a few cells the MAD then drops close
   to zero. No correction is applied.
 - Bins with fewer than about 10 cells are only indicative.

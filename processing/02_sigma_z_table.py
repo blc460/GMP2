@@ -20,10 +20,11 @@ df["theta_bin"] = pd.cut(df["theta_ground_deg"], cfg["incidence"], right=False)
 
 def table(keys):
     g = df.groupby(keys + ["r_bin", "theta_bin"], observed=True)
-    return (g["sigma_z_mm"].agg(segments="size", sigma_z_median_mm="median",
-                                sigma_z_q25_mm=lambda x: x.quantile(0.25), sigma_z_q75_mm=lambda x: x.quantile(0.75))
-            .join(g["sigma_z_med_mm"].agg(sigma_z_med_median_mm="median"))      # variant without plane
-            .round(3).reset_index())
+    t = g["sigma_z_mm"].agg(segments="size", sigma_z_median_mm="median",
+                            sigma_z_q25_mm=lambda x: x.quantile(0.25), sigma_z_q75_mm=lambda x: x.quantile(0.75))
+    if "sigma_z_plane_mm" in df:                                             # optional plane fit
+        t = t.join(g["sigma_z_plane_mm"].agg(sigma_z_plane_median_mm="median"))
+    return t.round(3).reset_index()
 
 
 main = table(group_keys())

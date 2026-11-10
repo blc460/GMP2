@@ -5,11 +5,11 @@
 2. Rails: connected groups of points in plan view, cut into windows and pieces; each piece is cut into
    0.5 m cells along its main direction (PCA). Cells wider than `max_width` across the rail (switches,
    crossings) are dropped.
-3. Per cell: least-squares plane z = b0 + b1 x + b2 y, residuals beyond k MAD dropped once, plane
-   refitted; sigma_z = 1.4826 MAD of all residuals of the final fit. r = slant range from the scanner
-   to the cell centroid, theta = angle between the scan ray and the cell plane normal,
-   theta_ground = angle between the scan ray and the ground plane normal.
-   Variant without plane: sigma_z_med = 1.4826 MAD of the levelled heights about their median (all points).
+3. Per cell: sigma_z = 1.4826 MAD of the levelled heights about their median (all points of the cell).
+   r = slant range from the scanner to the cell centroid, theta_ground = angle between the scan ray and
+   the ground plane normal. Optional (plane_fit): least-squares plane z = b0 + b1 x + b2 y, residuals
+   beyond k MAD dropped once, refit; sigma_z_plane = 1.4826 MAD of its residuals, theta = angle between
+   the scan ray and the cell plane normal.
 4. Density per cell: n / (length * width), both 2 % to 98 % of the points along and across the rail;
    expected density on a horizontal surface rho_exp = cos(theta_ground) / (r^2 sin(theta_ground) dphi^2)
    with the angular step dphi of the scan grid (point spacing r dphi within a column and r sin(theta_ground)
@@ -39,7 +39,7 @@ for ds in pd.read_csv(HERE / cfg["datasets"], keep_default_na=False).to_dict("re
         if width(p[idx, :2]) > cfg["max_width"]:
             dropped += 1
             continue
-        sigma, c, normal = plane(p[idx], cfg["outlier_k"])
+        c = p[idx].mean(axis=0)
         ray = c - origin
         r = np.linalg.norm(ray)
         c0 = p0[idx].mean(axis=0)
@@ -48,17 +48,19 @@ for ds in pd.read_csv(HERE / cfg["datasets"], keep_default_na=False).to_dict("re
         rho_exp = cos_g / (r ** 2 * np.sqrt(1 - cos_g ** 2) * dphi ** 2)
         rows.append(dict(dataset=Path(ds["path"]).stem, cell=cell[idx[0]], rail=rail[idx[0]],
                          scanner=ds["scanner"], setup=ds["setup"], condition=ds["condition"], x=c0[0], y=c0[1], n=len(idx),
-                         sigma_z_mm=1000 * sigma, sigma_z_med_mm=1000 * mad_sigma(p[idx, 2]),
-                         theta_deg=np.degrees(np.arccos(abs(ray @ normal) / r)),
+                         sigma_z_mm=1000 * mad_sigma(p[idx, 2]),
                          theta_ground_deg=np.degrees(np.arccos(cos_g)), r_m=r,
                          length_m=length, width_m=wid, points_per_m=len(idx) / length,
                          density_pts_m2=len(idx) / (length * wid), rho_exp_pts_m2=rho_exp,
                          return_rate=len(idx) / (length * wid) / rho_exp, intensity=np.median(intensity[idx]),
                          dphi_mrad=1000 * dphi))
+        if cfg["plane_fit"]:
+            sigma, _, normal = plane(p[idx], cfg["outlier_k"])
+            rows[-1].update(sigma_z_plane_mm=1000 * sigma, theta_deg=np.degrees(np.arccos(abs(ray @ normal) / r)))
     t = pd.DataFrame(rows[start:])
     print(f"{ds['path']}: ground plane tilt {tilt:.3f} deg, angular step {1000 * dphi:.3f} mrad, {len(p)} points of class {cfg["rail_class"]}, {len(np.unique(rail))} rails, "
-          f"{len(t)} cells ({dropped} dropped as switch), median sigma_z {t['sigma_z_mm'].median():.2f} mm (no plane {t['sigma_z_med_mm'].median():.2f} mm), "
-          f"r {t['r_m'].min():.1f}-{t['r_m'].max():.1f} m, theta {t['theta_deg'].min():.0f}-{t['theta_deg'].max():.0f} deg")
+          f"{len(t)} cells ({dropped} dropped as switch), median sigma_z {t['sigma_z_mm'].median():.2f} mm, "
+          f"r {t['r_m'].min():.1f}-{t['r_m'].max():.1f} m, theta_ground {t['theta_ground_deg'].min():.0f}-{t['theta_ground_deg'].max():.0f} deg")
 
 OUT.mkdir(parents=True, exist_ok=True)
 pd.DataFrame(rows).to_csv(OUT / "01_segments.csv", index=False)
