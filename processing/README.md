@@ -78,9 +78,15 @@ sigma_r is expected to be higher.
 
 `05_plots.py` draws three separate plots per scanner and station, and per
 scanner pooled over the stations (marker = station), into `figures/`:
-returns per 0.5 m cell over theta_ground and over r (cells, median per bin,
-dashed = expected from the scan grid), and sigma_z at each cell's r and
-theta_ground (colour, log scale 0.3 to 3 mm, the same in all figures).
+
+- point density in pts/dm2 (points per 10 x 10 cm; right axis in pts/m2) over
+  theta_ground and over r: cells, median per bin, dashed = expected from the
+  scan grid. The density of a cell is n / (length x width), with length and
+  width from 2 % to 98 % of its points along and across the rail (typically
+  0.48 m x 0.042 m = 0.020 m2 on the railhead, 0.48 m x 0.016 m = 0.008 m2 on
+  the lip), not the nominal 0.5 m cell.
+- sigma_z at each cell's r and theta_ground (colour, log scale 0.3 to 3 mm,
+  the same in all figures).
 
 ## Output (`results/sok/` or `results/lip/`, by `rail_class`)
 
@@ -91,7 +97,7 @@ theta_ground (colour, log scale 0.3 to 3 mm, the same in all figures).
 - `02_sigma_z.png`: sigma_z over slant range and over incidence angle
 - `04_falloff.csv`, `04_falloff_summary.csv`, `04_falloff.png`: falloff with
   range per scanner and station; `04_falloff_pooled.csv` without station
-- `figures/05_<scanner>_<station>_<plot>.png`: returns and sigma_z per scanner and
+- `figures/05_<scanner>_<station>_<plot>.png`: point density and sigma_z per scanner and
   station, and pooled per scanner
 - `03_map_<dataset>.laz`: railhead points with sigma_z per point, to view in
   CloudCompare (NaN where a cell was skipped or dropped)
