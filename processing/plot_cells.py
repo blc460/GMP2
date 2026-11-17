@@ -10,31 +10,23 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 import numpy as np
-import pandas as pd
 
-from cells import HERE, OUT, _axis, cells, cfg, level, read, width
+from cells import OUT, cells, cfg, find_dataset, iter_cells, level, main_axis as _axis, read
 
 SWITCH = (17.0, 37.0, 3.4, 10.4)       # zoom windows (x0, x1, y0, y1) in the levelled frame [m]
 CURVE = (8.5, 19.0, -7.6, 3.6)
 
-datasets = pd.read_csv(HERE / cfg["datasets"], keep_default_na=False)
-ds = datasets[datasets["path"].str.contains(sys.argv[1], regex=False)].iloc[0]
+ds = find_dataset(sys.argv[1])
 _, p0, origin0 = read(ds)
 p, origin, tilt = level(p0, origin0)
 rail, piece, cell = cells(p)
 
-# status per cell as in 01_segments.py: kept, dropped (switch) or too few points
-order = np.argsort(cell)
+# status per cell, with the same rules as 01_segments.py: kept, dropped (switch) or too few points
 status, w_cell = {}, {}
-for idx in np.split(order, np.flatnonzero(np.diff(cell[order])) + 1):
-    c = cell[idx[0]]
-    if c < 0:
-        continue
-    if len(idx) < cfg["min_points"]:
-        status[c] = "few"
-        continue
-    w_cell[c] = width(p[idx, :2])
-    status[c] = "drop" if w_cell[c] > cfg["max_width"] else "keep"
+for c in iter_cells(p, cell):
+    status[c.id] = {"keep": "keep", "switch": "drop", "few": "few"}[c.status]
+    if c.status != "few":
+        w_cell[c.id] = c.width
 st = np.array([status.get(c, "few") for c in cell])
 rng = np.random.default_rng(0)
 tab = plt.get_cmap("tab10")

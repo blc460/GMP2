@@ -1,9 +1,18 @@
 # processing
 
-How noisy are the rail heights in a laser scan? For every 0.5 m piece of rail
-(a cell) the scripts compute the point noise sigma_z and relate it to the
-slant range and the incidence angle from the scanner, per scanner, setting and
-station.
+How noisy are the rail heights in a laser scan, and how precisely is the rail
+height known? For every 0.5 m piece of rail (a cell) the scripts compute the
+point noise sigma_z and the precision sigma_Z of the cell height, and relate
+them to the slant range and the incidence angle from the scanner, per scanner,
+setting and station.
+
+| file | content |
+| --- | --- |
+| `cells.py` | settings, reading, levelling, rails, pieces and cells (shared by all steps) |
+| `precision.py` | sigma_z and the three sigma_Z estimators |
+| `01_segments.py` ... `06_combine.py` | the steps, run in this order |
+| `plot_cells.py` | optional figure explaining the cells |
+| `test_precision.py` | check of the sigma_Z estimators on simulated noise |
 
 ## Input
 
@@ -27,7 +36,10 @@ python processing/02_sigma_z_table.py
 python processing/03_map.py Bu_RTC-2
 python processing/04_falloff.py
 python processing/05_plots.py
+python processing/06_combine.py
 ```
+
+Optional: `python processing/test_precision.py` checks the sigma_Z estimators.
 
 ## Steps
 
@@ -44,12 +56,32 @@ python processing/05_plots.py
    sigma_z = 1.4826 MAD of all heights around it (no model per cell).
    Optional (`plane_fit = true`): fit a plane per cell, drop points beyond
    3 MAD once, fit again; sigma_z_plane = 1.4826 MAD of the residuals.
-6. Geometry per cell: slant range r from the scanner to the cell centre, and incidence
+6. sigma_Z per cell, the standard deviation of the cell height Z (median of the
+   heights), three ways (`precision.py`):
+   - `sigma_Z_sqrt_n = sigma_z / sqrt(n)`: all n points assumed independent.
+   - `sigma_Z_taubenheim = sigma_z / sqrt(n_eff)`: effective number of
+     measurements n_eff (Taubenheim 1969) in its 2D form on the scan grid
+     (ScanColumn x ScanRow, Schmitz et al. 2020, Eq. 2). The autocorrelation
+     is estimated from the data after removing a plane per cell (`detrend`),
+     because the formula needs a trend-free, stationary series (Schmitz et al.
+     2021). Lags are summed up to `max_lag_fraction` (10 %) of the grid extent
+     per direction. sigma_z itself is not changed.
+   - `sigma_Z_sub`: the cell is cut into sub-cells of `sub_cell` (0.1 m) along
+     the rail; the spread of their heights (20 % trimmed mean, so that the 1 mm
+     height grid of the RTC360 does not give exact zeros) about a straight line along the rail
+     (the gradient is a trend), divided by sqrt(m) (batch means). Needs at least
+     `min_sub_cells` sub-cells with `min_sub_points` points.
+   Both n_eff and the sub-cells only see correlation inside the cell, so all
+   three are lower bounds; errors common to a whole scan (levelling, scanner
+   calibration) are not included.
+7. Geometry per cell: slant range r from the scanner to the cell centre, and incidence
    angle theta_ground between the laser beam and the ground plane normal
    (with `plane_fit`, also theta to the cell plane).
-7. Table: median sigma_z per scanner and station in bins of 5 m and 10
-   degrees; a pooled table per scanner is written as a summary.
-8. Map: the values are written back onto the railhead points of one cloud.
+8. Table: number of cells, median sigma_z and the medians of the three
+   sigma_Z per scanner and station in bins of 5 m and 10 degrees; bins with
+   fewer than `min_cells` (10) cells are flagged `indicative`; a pooled table
+   per scanner is written as a summary.
+9. Map: the values are written back onto the railhead points of one cloud.
 
 `cells.py` holds steps 1 to 4, used by 01 and 03.
 Optional: `python processing/plot_cells.py Bu_RTC-2` draws how the cells and the
@@ -89,11 +121,17 @@ scanner pooled over the stations (marker = station), into `figures/`:
   direction than between scan columns.
 - sigma_z at each cell's r and theta_ground (colour, log scale 0.3 to 3 mm,
   the same in all figures).
+- `sigma_z_r_and_theta`: sigma_z over r and theta_ground, one dot per cell,
+  linear axis up to `sigma_z_max`, no median line.
+- `sigma_Z_<sqrt_n|taubenheim|sub>_r_and_theta`: sigma_Z over r and
+  theta_ground, one dot per cell, with the required values (`requirements`,
+  0.67 and 1.2 mm from quality_criteria.tex) as lines.
 
 ## Output (`results/sok/` or `results/lip/`, by `rail_class`)
 
-- `01_segments.csv`: one row per cell (sigma_z_mm, n, r_m, theta_ground_deg,
-  density, position; with `plane_fit` also sigma_z_plane_mm and theta_deg)
+- `01_segments.csv`: one row per cell (sigma_z_mm, sigma_Z_sqrt_n_mm, n_eff,
+  sigma_Z_taubenheim_mm, sigma_Z_sub_mm, n_sub, Z_m, n, r_m, theta_ground_deg,
+  density, position, rail and piece; with `plane_fit` also sigma_z_plane_mm and theta_deg)
 - `02_sigma_z_table.csv`: the result table per scanner, station, slant range and
   angle bin; `02_sigma_z_table_pooled.csv`: the same without station
 - `02_sigma_z.png`: sigma_z over slant range and over incidence angle
@@ -120,3 +158,21 @@ scanner pooled over the stations (marker = station), into `figures/`:
 - RTC360 stores heights in 1 mm steps; in a few cells the MAD then drops close
   to zero. No correction is applied.
 - Bins with fewer than about 10 cells are only indicative.
+- Check of the sigma_Z estimators (`test_precision.py`, simulated cell of
+  120 x 12 grid points): without correlation all three match the truth; with
+  correlated noise sqrt(n) is far too small, Taubenheim reaches 40 to 75 % and
+  the sub-cells 80 to 90 % of the true value. The empirical autocorrelation of
+  a short series is biased low, so n_eff is too large: sigma_Z_taubenheim is a
+  lower bound.
+
+## References
+
+- Taubenheim, J. (1969). Statistische Auswertung geophysikalischer und
+  meteorologischer Daten. Leipzig: Geest & Portig.
+- Schmitz, B., Kuhlmann, H., Holst, C. (2020). Investigating the resolution
+  capability of terrestrial laser scanners and its impact on the effective
+  number of measurements. ISPRS J. Photogramm. Remote Sens. 159, 41-52.
+- Schmitz, B., Kuhlmann, H., Holst, C. (2021). Towards the empirical
+  determination of correlations in terrestrial laser scanner range
+  observations and the comparison of the correlation structure of different
+  scanners. ISPRS J. Photogramm. Remote Sens. 182, 228-241.
