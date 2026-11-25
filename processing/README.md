@@ -68,13 +68,14 @@ Optional: `python processing/test_precision.py` checks the sigma_Z estimators
    (`precision.py`):
    - `sigma_Z_sqrt_n = sigma_z / sqrt(n)`: all n points assumed independent.
    - `sigma_Z_bins` (main estimator, batch means): the cell is cut into
-     `n_bins` = 4 bins of 0.125 m along the rail. Bin height h_k = 20 % trimmed
+     `n_bins` = 8 bins of 0.0625 m along the rail (bin length from the Allan
+     deviation, 07; 4 bins were used first). Bin height h_k = 20 % trimmed
      mean of the residuals in bin k (robust, and not stuck on the 1 mm height
      grid of the RTC360). The surface fit has already removed the mean and the
-     gradient, so s^2 = sum h_k^2 / (m - 2) and sigma_Z = s / sqrt(4).
-     Correlation shorter than a bin is contained. With 4 bins the estimate has
-     2 degrees of freedom: `sigma_Z_bins_lo/hi` is its 95 % interval from the
-     chi-square distribution (factor 0.52 to 6.3). One cell is therefore a rough
+     gradient, so s^2 = sum h_k^2 / (m - 2) and sigma_Z = s / sqrt(m).
+     Correlation shorter than a bin is contained. With 8 bins the estimate has
+     6 degrees of freedom: `sigma_Z_bins_lo/hi` is its 95 % interval from the
+     chi-square distribution (factor 0.64 to 2.2; with 4 bins 0.52 to 6.3). One cell is therefore a rough
      estimate; the medians over many cells (table, 02) are stable. A cell gets
      no value if a bin has fewer than `min_bin_points` points.
    - `sigma_Z_boot`: circular block bootstrap along the rail (Kuensch 1989,
@@ -124,7 +125,7 @@ sigma_r is expected to be higher.
 ## Allan deviation along the rail (07)
 
 `07_allan.py` checks the assumption behind the bins and the bootstrap blocks:
-is the noise uncorrelated beyond 0.125 m? Per 5 m piece of rail (only kept
+is the noise uncorrelated beyond one bin (0.0625 m)? Per 5 m piece of rail (only kept
 cells), the surface z = a + b u + c u^2 + d v + e v^2 is removed (a parabola
 along the rail for vertical curves), the residuals are averaged in bins of
 length tau (1 cm to 1 m, `allan_tau`), and the Allan variance
@@ -132,15 +133,18 @@ sigma_A^2(tau) = 1/2 <(mean_k+1 - mean_k)^2> of adjacent bins is pooled over
 all pieces of a scanner and station (Allan 1966). For white noise sigma_A falls
 like var(e)/n_bin (dotted line); `ratio` = sigma_A / white.
 
-- ratio ~ 1 at tau = 0.125 m: the 4 bins are independent, sigma_Z_bins is
+- ratio ~ 1 at tau = bin length: the bins are independent, sigma_Z_bins is
   unbiased.
 - ratio > 1: correlated noise or rail geometry that the surface model does not
   hold (wear, corrugation) at this scale; sigma_Z_bins is then low by up to the
   ratio, and sigma_A at tau = 0.5 m (adjacent cells) is an upper bound of
   sigma_Z (it also holds real height changes between cells).
 - Result (sok, all scanners and stations): ratio ~ 1 up to 5 to 7 cm, 1.1 to
-  1.9 at 0.125 m, 1.8 to 5.7 at 0.5 m. Hence the bootstrap block of 6.25 cm,
-  and sigma_Z_bins is still a lower bound (low by up to the ratio at 0.125 m).
+  1.9 at 0.125 m, 1.8 to 5.7 at 0.5 m. The longest uncorrelated length is
+  3 to 7.5 cm for most stations (12.5 cm for FARO 1/2 Q4 S2 and S3), hence
+  8 bins of 6.25 cm and the bootstrap block of 6.25 cm. The slow part beyond
+  (ratio rising to 2 to 10 at 0.5 to 1 m) is not seen inside a cell:
+  sigma_Z_bins is a lower bound for the random part only.
 
 Output: `07_allan.csv` (per scanner, station and tau: pieces, differences,
 allan_dev_mm, white_mm, ratio) and `07_allan.png`.
@@ -203,8 +207,8 @@ scanner pooled over the stations (marker = station), into `figures/`:
 - Bins with fewer than about 10 cells are only indicative.
 - Check of the sigma_Z estimators (`test_precision.py`, simulated cell of
   120 x 12 grid points with slope and crown): without correlation all match the
-  truth; with correlated noise sqrt(n) is far too small (4 to 40 %), the 4 bins
-  reach 60 to 90 % and the block bootstrap 45 to 85 % of the true value (the
+  truth; with correlated noise sqrt(n) is far too small (4 to 40 %), the bins
+  reach 50 to 90 % (8 bins; 4 bins: 60 to 90 %) and the block bootstrap 45 to 85 % of the true value (the
   longer the correlation, the lower). The dropped Taubenheim estimator reached
   30 to 80 % and was far off when the crown was left in the data.
 

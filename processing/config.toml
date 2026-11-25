@@ -24,7 +24,7 @@ by_condition = false        # also split the tables by rail condition (dry / wet
 #   sigma_Z_bins  = sqrt(sum h_k^2 / (m-2)) / sqrt(m)      h_k = trimmed mean of e in bin k of m (batch means)
 #   sigma_Z_boot  = std of the mean of e, moving-block bootstrap along the rail
 surface = "plane+crown"     # rail surface removed per cell: "plane+crown" or "plane"
-n_bins = 4                  # bins per cell along the rail (0.5 m / 4 = 0.125 m)
+n_bins = 8                  # bins per cell along the rail (0.5 m / 8 = 0.0625 m; from the Allan deviation, 07)
 min_bin_points = 5          # a cell gets no sigma_Z_bins if one of its bins has fewer points
 bin_trim = 0.2              # trimmed mean per bin (fraction cut on each side)
 boot_block = 0.0625         # block length of the bootstrap [m] (>= correlation length, see 07_allan)

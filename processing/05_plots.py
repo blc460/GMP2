@@ -24,7 +24,7 @@ FOLDER = OUT / "figures"
 EDGES = dict(theta_ground_deg=np.array(cfg["incidence"]), r_m=np.array(cfg["distance"]))
 LABELS = dict(theta_ground_deg=r"incidence angle $\theta$ [deg]", r_m="slant range $r$ [m]")
 STYLE = {"S1": ("tab:blue", "o"), "S2": ("tab:orange", "s"), "S3": ("tab:green", "^"), "S4": ("tab:purple", "D")}
-METHODS = {"sqrt_n": r"$\sigma_Z = \sigma_z/\sqrt{n}$", "bins": r"$\sigma_Z$ from 4 bins ($s/\sqrt{4}$)",
+METHODS = {"sqrt_n": r"$\sigma_Z = \sigma_z/\sqrt{n}$", "bins": rf"$\sigma_Z$ from {cfg['n_bins']} bins ($s/\sqrt{{{cfg['n_bins']}}}$)",
            "boot": r"$\sigma_Z$ from block bootstrap"}
 NORM = LogNorm(0.3, 3.0)
 

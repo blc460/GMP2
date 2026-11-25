@@ -10,13 +10,13 @@ sigma_z  : 1.4826 * MAD of the residuals e (point noise). The raw value (MAD of 
 sigma_Z  : standard deviation of the cell height Z. Three estimators:
 
   sqrt_n  sigma_z / sqrt(n). All n points assumed independent (lower bound if the noise is correlated).
-  bins    The cell is cut into m bins along the rail (m = 4 by default, 0.125 m each). Bin height h_k = trimmed mean of
+  bins    The cell is cut into m bins along the rail (m = 8 by default, 0.0625 m each). Bin height h_k = trimmed mean of
           the residuals in bin k. Because a and b are already fitted, the h_k scatter about zero with m - 2 degrees
           of freedom:
                 s^2 = sum h_k^2 / (m - 2),        sigma_Z = s / sqrt(m)              (batch means)
           Correlation shorter than a bin is contained in s. Assumes the bins are independent, i.e. longer than the
-          correlation length: checked with the Allan deviation (07_allan.py). With m = 4 the estimate has only
-          2 degrees of freedom; its 95 % interval from the chi-square distribution is returned too.
+          correlation length: checked with the Allan deviation (07_allan.py). With m = 8 the estimate has
+          6 degrees of freedom; its 95 % interval from the chi-square distribution is returned too.
   boot    Circular block bootstrap along the rail (Kuensch 1989; Politis & Romano 1992): the residuals are cut into
           slices of `slice` along u, blocks of `block` (contiguous slices, any start, wrapping round) are drawn with
           replacement until the cell is full again, and sigma_Z = standard deviation of the mean of the
@@ -81,7 +81,7 @@ def bin_index(u, m):
     return np.minimum(((u - lo) / (hi - lo + 1e-12) * m).astype(int), m - 1)
 
 
-def sigma_Z_bins(u, e, m=4, min_points=5, trim=0.2, level=0.95):
+def sigma_Z_bins(u, e, m=8, min_points=5, trim=0.2, level=0.95):
     """sigma_Z from m bins of the residuals e along u (batch means, see module doc).
     Returns (sigma_Z, lower, upper, m_used); NaN if fewer than m bins have min_points points."""
     k = bin_index(u, m)

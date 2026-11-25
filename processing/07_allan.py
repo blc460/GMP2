@@ -2,7 +2,7 @@
 
 Usage: python processing/07_allan.py
 
-The 4 bins per cell (sigma_Z_bins) and the bootstrap blocks (sigma_Z_boot) assume that the noise is uncorrelated
+The n_bins (8) bins per cell (sigma_Z_bins) and the bootstrap blocks (sigma_Z_boot) assume that the noise is uncorrelated
 beyond the bin / block length. This is checked along whole 5 m pieces of rail (more data than one 0.5 m cell):
 
 1. Per piece (cells.py; only points of kept cells, no switches): residuals about the rail surface
@@ -14,7 +14,7 @@ beyond the bin / block length. This is checked along whole 5 m pieces of rail (m
    ratio = sigma_A / white. ratio ~ 1: the bin means are independent at this tau; ratio > 1: correlated noise (or
    rail geometry that is not in the surface model) at this scale.
 
-Read: the bins of a cell are fine if the ratio is ~1 at tau = cell / n_bins (0.125 m); blocks of the bootstrap
+Read: the bins of a cell are fine if the ratio is ~1 at tau = cell / n_bins (0.0625 m); blocks of the bootstrap
 should be at least as long as the tau where the ratio stops growing. At tau close to the piece length the
 parabola along the rail absorbs part of the variation, so the largest tau are biased low.
 

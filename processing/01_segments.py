@@ -8,7 +8,7 @@
 3. Residuals: the rail surface of the cell (plane + crown, `surface`) is removed; sigma_z = 1.4826 MAD of the
    residuals. sigma_z_raw = 1.4826 MAD of the levelled heights about their median (rail shape included).
 4. sigma_Z, the precision of the cell height Z, three ways (see precision.py): sqrt(n), batch means of
-   `n_bins` (4) bins along the rail with its 95 % interval, and a moving-block bootstrap along the rail.
+   `n_bins` (8) bins along the rail with its 95 % interval, and a moving-block bootstrap along the rail.
 5. Geometry: r = slant range scanner to cell centroid, theta_ground = angle between the ray and the ground normal.
    Density = n / (length * width), both 2 % to 98 % of the points; rho_exp = cos(theta_ground) /
    (r^2 sin(theta_ground) dphi^2) is what the scan grid delivers on a horizontal surface; return_rate = ratio.
