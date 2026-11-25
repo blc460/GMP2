@@ -8,6 +8,7 @@ many repetitions; the estimators should come close to it (sqrt(n) only without c
 --archive also runs the dropped estimators (Taubenheim n_eff, 0.1 m sub-cells of the raw heights).
 """
 import sys
+from pathlib import Path
 
 import numpy as np
 from scipy import ndimage
@@ -33,7 +34,7 @@ def check(nx=120, ny=12, corr=0.0, coloured=0.0, runs=300, archive=False):
     shape = 2.0 * u + 1.5 * (v / 0.02) ** 2                      # slope and crown, in units of the noise sigma
     out = {k: [] for k in ("mean", "raw", "sqrt_n", "bins", "boot", "taub", "sub")}
     if archive:
-        sys.path.insert(0, "archive")
+        sys.path.insert(0, str(Path(__file__).resolve().parent / "archive"))
         from taubenheim import detrend, n_eff_taubenheim, sigma_Z_sub
     for _ in range(runs):
         noise = simulate(nx, ny, corr, coloured)
