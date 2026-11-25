@@ -138,9 +138,9 @@ like var(e)/n_bin (dotted line); `ratio` = sigma_A / white.
   hold (wear, corrugation) at this scale; sigma_Z_bins is then low by up to the
   ratio, and sigma_A at tau = 0.5 m (adjacent cells) is an upper bound of
   sigma_Z (it also holds real height changes between cells).
-- First test (RTC360 S1 and S3, FARO 1/2 Q4 S3): ratio ~ 1 up to 5 to 7 cm,
-  1.1 to 1.9 at 0.125 m, 1.8 to 3 at 0.5 m. Hence the bootstrap block of
-  6.25 cm, and sigma_Z_bins is still a lower bound.
+- Result (sok, all scanners and stations): ratio ~ 1 up to 5 to 7 cm, 1.1 to
+  1.9 at 0.125 m, 1.8 to 5.7 at 0.5 m. Hence the bootstrap block of 6.25 cm,
+  and sigma_Z_bins is still a lower bound (low by up to the ratio at 0.125 m).
 
 Output: `07_allan.csv` (per scanner, station and tau: pieces, differences,
 allan_dev_mm, white_mm, ratio) and `07_allan.png`.
