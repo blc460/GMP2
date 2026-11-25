@@ -135,11 +135,11 @@ like sigma_z^2/n_bin (dotted line; sigma_z of the cells as in 01); `ratio` = sig
   at this scale; sigma_Z_bins is then low by up to the
   ratio, and sigma_A at tau = 0.5 m (adjacent cells) is an upper bound of
   sigma_Z (it also holds real height changes between cells).
-- Result (sok, all scanners and stations): see `07_allan.csv`. The noise is
-  close to uncorrelated up to a few cm (3 to 7.5 cm for most stations, 12.5 cm
-  for FARO 1/2 Q4 S2 and S3), hence 8 bins of 6.25 cm and the bootstrap block
-  of 6.25 cm. Beyond, the ratio rises (slow noise and the rail gradient), which
-  no estimator inside a cell sees.
+- Result (sok, all scanners and stations, raw heights): see `07_allan.csv`.
+  The ratio stays near 1 up to about 3 to 5 cm for the RTC360 and 10 to 15 cm
+  for the FARO, hence 8 bins of 6.25 cm and the bootstrap block of 6.25 cm.
+  Beyond, it rises to 3 to 27 at 0.5 to 1 m (slow noise and above all the rail
+  gradient, which is not removed), which no estimator inside a cell sees.
 
 Output: `07_allan.csv` (per scanner, station and tau: pieces, differences,
 allan_dev_mm, white_mm, ratio) and `07_allan.png`.
