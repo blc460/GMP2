@@ -45,15 +45,10 @@ Why it was dropped:
 
 sigma_Z_sub = spread of the 20 % trimmed means of 0.1 m sub-cells (about 5 per
 cell) about a straight line along the rail, divided by sqrt(m). Replaced by
-`precision.sigma_Z_bins` (4 bins of 0.125 m of the residuals after plane +
-crown), because
-
-- the raw heights contain the cross profile (crown, cant); each sub-cell
-  samples it differently at grazing angles, which adds spread;
-- with 5 sub-cells and a fitted line it had 3 degrees of freedom: one cell's
-  value scattered by a factor 4 to 7 (10 to 90 % quantile);
-- together with sigma_z of the raw heights (also too large) its median came
-  out almost equal to sigma_z / sqrt(n), so correlation could not be seen.
+`precision.sigma_Z_bins` (8 bins of 0.0625 m, length from the Allan
+deviation, standard deviation of the bin heights / sqrt(8), no line fit),
+because with 5 sub-cells and a fitted line it had 3 degrees of freedom: one
+cell's value scattered by a factor 4 to 7 (10 to 90 % quantile).
 
 ## References
 

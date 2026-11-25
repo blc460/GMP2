@@ -18,21 +18,18 @@ by_setup = true             # split the tables by station (setup column); a pool
 by_condition = false        # also split the tables by rail condition (dry / wet)
 
 # sigma_z / sigma_Z (precision.py), written by 01 per cell
-#   residuals e   = heights minus the rail surface z = a + b u + c v + d v^2 of the cell (u along, v across the rail)
-#   sigma_z       = 1.4826 MAD(e)                          point noise (sigma_z_raw: MAD of the raw heights)
+#   sigma_z       = 1.4826 MAD of the levelled heights about their median (no model per cell)
 #   sigma_Z_sqrt_n = sigma_z / sqrt(n)                     all n points assumed independent
-#   sigma_Z_bins  = sqrt(sum h_k^2 / (m-2)) / sqrt(m)      h_k = trimmed mean of e in bin k of m (batch means)
-#   sigma_Z_boot  = std of the mean of e, moving-block bootstrap along the rail
-surface = "plane+crown"     # rail surface removed per cell: "plane+crown" or "plane"
+#   sigma_Z_bins  = std(h_k) / sqrt(m)                      h_k = trimmed mean of the heights in bin k of m (batch means)
+#   sigma_Z_boot  = std of the mean height, circular block bootstrap along the rail
 n_bins = 8                  # bins per cell along the rail (0.5 m / 8 = 0.0625 m; from the Allan deviation, 07)
 min_bin_points = 5          # a cell gets no sigma_Z_bins if one of its bins has fewer points
 bin_trim = 0.2              # trimmed mean per bin (fraction cut on each side)
 boot_block = 0.0625         # block length of the bootstrap [m] (>= correlation length, see 07_allan)
-boot_slice = 0.01           # the residuals are cut into slices of this length, blocks are whole slices [m]
+boot_slice = 0.01           # the heights are cut into slices of this length, blocks are whole slices [m]
 boot_runs = 200             # bootstrap repetitions per cell
 table_boot_runs = 1000      # bootstrap repetitions (over cells) for the 95 % interval of the table medians in 02
 allan_tau = [0.01, 0.02, 0.03, 0.05, 0.075, 0.1, 0.125, 0.15, 0.2, 0.25, 0.35, 0.5, 0.75, 1.0]   # bin lengths [m]
-allan_u_order = 2           # 07: along the 5 m piece the surface has a parabola in u (vertical curve)
 min_cells = 10              # table bins with fewer cells are flagged as indicative
 requirements = [0.67, 1.2]  # required sigma_Z of a rail height [mm] (quality_criteria.tex), drawn in the sigma_Z figures
 sigma_z_max = 6.0           # y-axis limit of the sigma_z figures in 05 [mm]

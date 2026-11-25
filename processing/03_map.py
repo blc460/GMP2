@@ -3,7 +3,7 @@
 Usage: python processing/03_map.py Bu_RTC-2   (any part of the file name of one row of datasets.csv)
 
 Every railhead point gets the values of its cell (the same cells as in 01_segments.py): sigma_z_cell_mm,
-sigma_z_raw_cell_mm, sigma_z_bin_mm (median sigma_z of the cell's table line, range and angle bin), the three
+sigma_z_bin_mm (median sigma_z of the cell's table line, range and angle bin), the three
 sigma_Z (sqrt_n, bins, boot), r_m and
 theta_ground_deg; with plane_fit also sigma_z_plane_cell_mm and theta_deg. Points in skipped or dropped cells get NaN.
 
@@ -18,8 +18,7 @@ import pandas as pd
 
 from cells import OUT, cells, cfg, find_dataset, group_keys, level, read
 
-FIELDS = [("sigma_z_cell_mm", "sigma_z_mm"), ("sigma_z_raw_cell_mm", "sigma_z_raw_mm"),
-          ("sigma_z_bin_mm", "sigma_z_median_mm"), ("sigma_Z_sqrt_n_mm", "sigma_Z_sqrt_n_mm"),
+FIELDS = [("sigma_z_cell_mm", "sigma_z_mm"), ("sigma_z_bin_mm", "sigma_z_median_mm"), ("sigma_Z_sqrt_n_mm", "sigma_Z_sqrt_n_mm"),
           ("sigma_Z_bins_mm", "sigma_Z_bins_mm"), ("sigma_Z_boot_mm", "sigma_Z_boot_mm"), ("r_m", "r_m"),
           ("theta_ground_deg", "theta_ground_deg")]
 

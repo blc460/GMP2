@@ -9,7 +9,7 @@ setting and station.
 | file | content |
 | --- | --- |
 | `cells.py` | settings, reading, levelling, rails, pieces and cells (shared by all steps) |
-| `precision.py` | residuals, sigma_z, the three sigma_Z estimators, Allan variance |
+| `precision.py` | sigma_z, the three sigma_Z estimators, Allan variance |
 | `01_segments.py` ... `07_allan.py` | the steps, run in this order |
 | `plot_cells.py` | optional figure explaining the cells |
 | `test_precision.py` | check of the sigma_Z estimators on simulated noise |
@@ -55,13 +55,8 @@ Optional: `python processing/test_precision.py` checks the sigma_Z estimators
    Cells with fewer than `min_points` (30) points are skipped.
 4. Drop switches: a cell wider than `max_width` (0.12 m) across the rail holds
    more than one railhead (switch, crossing) and is dropped.
-5. sigma_z per cell: the rail surface of the cell is removed first,
-   z = a + b u + c v + d v^2 (u along, v across the rail; b = gradient, c = cant
-   and rail inclination, d = crown of the railhead; `surface`), least squares,
-   points beyond 3 MAD dropped once and refitted. sigma_z = 1.4826 MAD of the
-   residuals e: the point noise. `sigma_z_raw` = 1.4826 MAD of the levelled
-   heights about their median (rail shape included, the earlier definition) is
-   kept; it is 25 to 65 % higher.
+5. sigma_z per cell: the median of the levelled heights of the cell, and
+   sigma_z = 1.4826 MAD of all heights around it (no model per cell).
    Optional (`plane_fit = true`): fit a plane per cell, drop points beyond
    3 MAD once, fit again; sigma_z_plane = 1.4826 MAD of the residuals.
 6. sigma_Z per cell, the standard deviation of the cell height Z, three ways
@@ -70,28 +65,30 @@ Optional: `python processing/test_precision.py` checks the sigma_Z estimators
    - `sigma_Z_bins` (main estimator, batch means): the cell is cut into
      `n_bins` = 8 bins of 0.0625 m along the rail (bin length from the Allan
      deviation, 07; 4 bins were used first). Bin height h_k = 20 % trimmed
-     mean of the residuals in bin k (robust, and not stuck on the 1 mm height
-     grid of the RTC360). The surface fit has already removed the mean and the
-     gradient, so s^2 = sum h_k^2 / (m - 2) and sigma_Z = s / sqrt(m).
+     mean of the heights in bin k (robust, and not stuck on the 1 mm height
+     grid of the RTC360); s = standard deviation of the m bin heights and
+     sigma_Z = s / sqrt(m).
      Correlation shorter than a bin is contained. With 8 bins the estimate has
-     6 degrees of freedom: `sigma_Z_bins_lo/hi` is its 95 % interval from the
-     chi-square distribution (factor 0.64 to 2.2; with 4 bins 0.52 to 6.3). One cell is therefore a rough
+     7 degrees of freedom: `sigma_Z_bins_lo/hi` is its 95 % interval from the
+     chi-square distribution (factor 0.66 to 2.0). One cell is therefore a rough
      estimate; the medians over many cells (table, 02) are stable. A cell gets
      no value if a bin has fewer than `min_bin_points` points.
    - `sigma_Z_boot`: circular block bootstrap along the rail (Kuensch 1989,
-     Politis & Romano 1992): the residuals are cut into 1 cm slices, blocks of
+     Politis & Romano 1992): the heights are cut into 1 cm slices, blocks of
      `boot_block` (6.25 cm) are drawn with replacement until the cell is full,
      sigma_Z = standard deviation of the mean over `boot_runs` (200) runs,
      corrected for the known (1 - L/S) bias. Keeps correlation shorter than the
      block. A point-wise bootstrap would only repeat sqrt(n).
    All three only see correlation inside the cell (bins and blocks: inside a bin
-   or block), so they are lower bounds; errors common to a whole scan
+   or block), so they are lower bounds for the random part; errors common to a whole scan
    (levelling, scanner calibration) are not included. 07_allan.py checks how
-   far the bins are from independent.
+   far the bins are from independent. No model is fitted per cell, so the
+   slope (gradient, cant) and the crown of the rail inside the cell stay in
+   sigma_z and in the spread of the bins (known and accepted).
 7. Geometry per cell: slant range r from the scanner to the cell centre, and incidence
    angle theta_ground between the laser beam and the ground plane normal
    (with `plane_fit`, also theta to the cell plane).
-8. Table: number of cells, median sigma_z (and sigma_z_raw) and the medians of
+8. Table: number of cells, median sigma_z and the medians of
    the three sigma_Z per scanner and station in bins of 5 m and 10 degrees; for
    sigma_z and sigma_Z_bins also the 95 % interval of the median, from a
    bootstrap over the cells of the bin (`table_boot_runs`); bins with
@@ -126,25 +123,23 @@ sigma_r is expected to be higher.
 
 `07_allan.py` checks the assumption behind the bins and the bootstrap blocks:
 is the noise uncorrelated beyond one bin (0.0625 m)? Per 5 m piece of rail (only kept
-cells), the surface z = a + b u + c u^2 + d v + e v^2 is removed (a parabola
-along the rail for vertical curves), the residuals are averaged in bins of
+cells), the levelled heights (no model) are averaged in bins of
 length tau (1 cm to 1 m, `allan_tau`), and the Allan variance
 sigma_A^2(tau) = 1/2 <(mean_k+1 - mean_k)^2> of adjacent bins is pooled over
 all pieces of a scanner and station (Allan 1966). For white noise sigma_A falls
-like var(e)/n_bin (dotted line); `ratio` = sigma_A / white.
+like sigma_z^2/n_bin (dotted line; sigma_z of the cells as in 01); `ratio` = sigma_A / white.
 
 - ratio ~ 1 at tau = bin length: the bins are independent, sigma_Z_bins is
   unbiased.
-- ratio > 1: correlated noise or rail geometry that the surface model does not
-  hold (wear, corrugation) at this scale; sigma_Z_bins is then low by up to the
+- ratio > 1: correlated noise or rail geometry (gradient, cant, crown, wear)
+  at this scale; sigma_Z_bins is then low by up to the
   ratio, and sigma_A at tau = 0.5 m (adjacent cells) is an upper bound of
   sigma_Z (it also holds real height changes between cells).
-- Result (sok, all scanners and stations): ratio ~ 1 up to 5 to 7 cm, 1.1 to
-  1.9 at 0.125 m, 1.8 to 5.7 at 0.5 m. The longest uncorrelated length is
-  3 to 7.5 cm for most stations (12.5 cm for FARO 1/2 Q4 S2 and S3), hence
-  8 bins of 6.25 cm and the bootstrap block of 6.25 cm. The slow part beyond
-  (ratio rising to 2 to 10 at 0.5 to 1 m) is not seen inside a cell:
-  sigma_Z_bins is a lower bound for the random part only.
+- Result (sok, all scanners and stations): see `07_allan.csv`. The noise is
+  close to uncorrelated up to a few cm (3 to 7.5 cm for most stations, 12.5 cm
+  for FARO 1/2 Q4 S2 and S3), hence 8 bins of 6.25 cm and the bootstrap block
+  of 6.25 cm. Beyond, the ratio rises (slow noise and the rail gradient), which
+  no estimator inside a cell sees.
 
 Output: `07_allan.csv` (per scanner, station and tau: pieces, differences,
 allan_dev_mm, white_mm, ratio) and `07_allan.png`.
@@ -172,8 +167,8 @@ scanner pooled over the stations (marker = station), into `figures/`:
 
 ## Output (`results/sok/` or `results/lip/`, by `rail_class`)
 
-- `01_segments.csv`: one row per cell (sigma_z_mm, sigma_z_raw_mm,
-  sigma_Z_sqrt_n_mm, sigma_Z_bins_mm, sigma_Z_bins_lo_mm, sigma_Z_bins_hi_mm,
+- `01_segments.csv`: one row per cell (sigma_z_mm, sigma_Z_sqrt_n_mm,
+  sigma_Z_bins_mm, sigma_Z_bins_lo_mm, sigma_Z_bins_hi_mm,
   n_bins, sigma_Z_boot_mm, Z_m, n, r_m, theta_ground_deg,
   density, position, rail and piece; with `plane_fit` also sigma_z_plane_mm and theta_deg)
 - `02_sigma_z_table.csv`: the result table per scanner, station, slant range and
@@ -195,22 +190,22 @@ scanner pooled over the stations (marker = station), into `figures/`:
   pooled over stations mixes this and is only a summary. With three stations
   the cause (scanner height or platform, position) cannot be separated.
 
-- sigma_z is the noise about the rail surface of the cell (plane + crown).
-  The earlier definition (heights about their median, no model) also held the
-  slope, cant and crown of the rail and is kept as sigma_z_raw. Together with
-  the earlier sub-cell estimator this made sigma_Z_sub look almost the same as
-  sigma_z / sqrt(n): sigma_z_raw was too large, and the sub-cell spread (3
-  degrees of freedom, raw heights) too noisy, and the two cancelled.
+- sigma_z uses the heights after the global levelling, without a model per
+  cell (chosen for simplicity and transparency). It therefore also contains
+  the slope of the rail within the 0.5 m cell (rail inclination 1:40, cant,
+  gradient) and the crown of the railhead, and is about 25 to 65 % higher than
+  the scatter about a plane + crown per cell (tested, not used). The same
+  holds for the spread of the bin heights.
 - RTC360 stores heights in 1 mm steps; in a few cells the MAD then drops close
-  to zero (on the residuals only in cells of a single scan line). No correction
-  is applied; 06 leaves cells with sigma_z = 0 out of the fits.
+  to zero. No correction is applied; 06 leaves cells with sigma_z = 0 out of the fits.
 - Bins with fewer than about 10 cells are only indicative.
 - Check of the sigma_Z estimators (`test_precision.py`, simulated cell of
-  120 x 12 grid points with slope and crown): without correlation all match the
-  truth; with correlated noise sqrt(n) is far too small (4 to 40 %), the bins
-  reach 50 to 90 % (8 bins; 4 bins: 60 to 90 %) and the block bootstrap 45 to 85 % of the true value (the
-  longer the correlation, the lower). The dropped Taubenheim estimator reached
-  30 to 80 % and was far off when the crown was left in the data.
+  120 x 12 grid points, no rail shape; truth = spread of the median height):
+  with correlated noise sqrt(n) is far too small (5 to 36 %), the 8 bins reach
+  50 to 90 % and the block bootstrap 50 to 90 % of the true value (the longer
+  the correlation, the lower). The dropped Taubenheim estimator reached 27 to
+  70 %. Without correlation all are about 0.8: they describe the mean, the
+  median scatters about 1.25 times more.
 
 ## References
 

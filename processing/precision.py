@@ -1,27 +1,23 @@
 """Point noise sigma_z of a cell and the precision sigma_Z of its height Z (used by 01_segments.py and 07_allan.py).
 
-Residuals: the rail surface of the cell is removed first by a least-squares fit
-                z = a + b u + c v + d v^2        (u along, v across the rail; d v^2 = crown of the railhead)
-           with one rejection of residuals beyond k MAD. The residuals e are the measurement noise; the slope along
-           the rail (gradient), the cant / inclination across it and the crown are geometry, not noise.
+All values come from the levelled heights z of the cell as they are: no surface model is fitted per cell, so the
+slope, cant and crown of the rail inside the cell stay in the numbers (known limitation, see README).
 
-sigma_z  : 1.4826 * MAD of the residuals e (point noise). The raw value (MAD of the levelled heights about their
-           median, rail shape included) is kept as sigma_z_raw.
-sigma_Z  : standard deviation of the cell height Z. Three estimators:
+sigma_z  : 1.4826 * MAD of the heights about their median (point noise including the rail shape in the cell).
+sigma_Z  : standard deviation of the cell height Z (median of the heights). Three estimators:
 
   sqrt_n  sigma_z / sqrt(n). All n points assumed independent (lower bound if the noise is correlated).
-  bins    The cell is cut into m bins along the rail (m = 8 by default, 0.0625 m each). Bin height h_k = trimmed mean of
-          the residuals in bin k. Because a and b are already fitted, the h_k scatter about zero with m - 2 degrees
-          of freedom:
-                s^2 = sum h_k^2 / (m - 2),        sigma_Z = s / sqrt(m)              (batch means)
+  bins    The cell is cut into m bins along the rail (m = 8 by default, 0.0625 m each). Bin height h_k = 20 % trimmed
+          mean of the heights in bin k. With s = standard deviation of the m bin heights (m - 1 degrees of freedom):
+                sigma_Z = s / sqrt(m)                                                    (batch means)
           Correlation shorter than a bin is contained in s. Assumes the bins are independent, i.e. longer than the
-          correlation length: checked with the Allan deviation (07_allan.py). With m = 8 the estimate has
-          6 degrees of freedom; its 95 % interval from the chi-square distribution is returned too.
-  boot    Circular block bootstrap along the rail (Kuensch 1989; Politis & Romano 1992): the residuals are cut into
+          correlation length: checked with the Allan deviation (07_allan.py). The 95 % interval of s from the
+          chi-square distribution is returned too.
+  boot    Circular block bootstrap along the rail (Kuensch 1989; Politis & Romano 1992): the heights are cut into
           slices of `slice` along u, blocks of `block` (contiguous slices, any start, wrapping round) are drawn with
           replacement until the cell is full again, and sigma_Z = standard deviation of the mean of the
-          bootstrapped residuals. Keeps correlation shorter than the block, misses longer correlation, so it lies
-          between sqrt_n and the truth. A point-wise (iid) bootstrap would only reproduce sqrt_n.
+          bootstrapped heights. Keeps correlation shorter than the block, misses longer correlation.
+          A point-wise (iid) bootstrap would only reproduce sqrt_n.
 
 Only correlation inside the cell is seen, so all three are lower bounds of the full uncertainty of a rail height;
 errors common to a whole scan (levelling, scanner calibration) are not included.
@@ -44,35 +40,6 @@ def sigma_Z_sqrt_n(sigma_z, n):
     return sigma_z / np.sqrt(n)
 
 
-# --- residuals ----------------------------------------------------------------------------------------------------
-
-def design(u, v, model="plane+crown", u_order=1):
-    """Columns of the surface model: 1, u (.. u^u_order), v and, for plane+crown, v^2."""
-    cols = [np.ones_like(u)] + [u ** k for k in range(1, u_order + 1)] + [v]
-    if model == "plane+crown":
-        cols.append(v ** 2)
-    elif model != "plane":
-        raise ValueError(f"unknown model {model!r}")
-    return np.column_stack(cols)
-
-
-def residuals(u, v, z, model="plane+crown", k=3.0, u_order=1):
-    """Residuals of z about the rail surface (least squares; points beyond k MAD dropped once, then refitted).
-    All points keep a residual (the dropped ones too), so that noise statistics stay robust but complete."""
-    u = u - u.mean()
-    v = v - v.mean()
-    A = design(u, v, model, u_order)
-    b = np.linalg.lstsq(A, z, rcond=None)[0]
-    e = z - A @ b
-    s = mad_sigma(e)
-    if s > 0:
-        keep = np.abs(e - np.median(e)) <= k * s
-        if keep.sum() > A.shape[1]:
-            b = np.linalg.lstsq(A[keep], z[keep], rcond=None)[0]
-            e = z - A @ b
-    return e
-
-
 # --- bins (batch means) -----------------------------------------------------------------------------------------
 
 def bin_index(u, m):
@@ -81,27 +48,28 @@ def bin_index(u, m):
     return np.minimum(((u - lo) / (hi - lo + 1e-12) * m).astype(int), m - 1)
 
 
-def sigma_Z_bins(u, e, m=8, min_points=5, trim=0.2, level=0.95):
-    """sigma_Z from m bins of the residuals e along u (batch means, see module doc).
+def sigma_Z_bins(u, z, m=8, min_points=5, trim=0.2, level=0.95):
+    """sigma_Z from m bins of the heights z along u (batch means, see module doc).
     Returns (sigma_Z, lower, upper, m_used); NaN if fewer than m bins have min_points points."""
     k = bin_index(u, m)
-    h = [trim_mean(e[k == j], trim) for j in range(m) if (k == j).sum() >= min_points]
+    h = [trim_mean(z[k == j], trim) for j in range(m) if (k == j).sum() >= min_points]
     if len(h) < m:
         return np.nan, np.nan, np.nan, len(h)
-    dof = m - 2
-    s = np.sqrt(np.sum(np.square(h)) / dof) / np.sqrt(m)
+    dof = m - 1
+    s = np.std(h, ddof=1) / np.sqrt(m)
     a = (1 - level) / 2
     return s, s * np.sqrt(dof / chi2.ppf(1 - a, dof)), s * np.sqrt(dof / chi2.ppf(a, dof)), m
 
 
 # --- moving-block bootstrap -------------------------------------------------------------------------------------
 
-def sigma_Z_boot(u, e, block=0.0625, slice_=0.01, runs=200, rng=None):
-    """Circular block bootstrap of the mean of the residuals e along u (see module doc). Returns sigma_Z.
-    The residuals are summed per slice of `slice_`; a block is L = block / slice_ contiguous slices (wrapping round
+def sigma_Z_boot(u, z, block=0.0625, slice_=0.01, runs=200, rng=None):
+    """Circular block bootstrap of the mean of the heights z along u (see module doc). Returns sigma_Z.
+    The heights (about their median) are summed per slice of `slice_`; a block is L = block / slice_ contiguous slices (wrapping round
     the end of the cell, so every slice is used equally often); k = S / L blocks rebuild a cell of S slices.
     The bootstrap variance of a mean is biased low by the factor (1 - L/S) even for white noise; it is corrected."""
     rng = np.random.default_rng(0) if rng is None else rng
+    e = z - np.median(z)
     j = np.floor((u - u.min()) / slice_).astype(int)
     S = j.max() + 1
     L = max(1, int(round(block / slice_)))
@@ -120,13 +88,14 @@ def sigma_Z_boot(u, e, block=0.0625, slice_=0.01, runs=200, rng=None):
 
 # --- Allan deviation --------------------------------------------------------------------------------------------
 
-def allan(u, e, taus, min_points=3):
-    """Allan variance of the residuals e along u for each bin length tau: half the mean squared difference of the
-    means of adjacent bins (both with at least min_points points). Also the white-noise reference var(e) / n_bin.
+def allan(u, z, taus, var, min_points=3):
+    """Allan variance of the heights z along u for each bin length tau: half the mean squared difference of the
+    means of adjacent bins (both with at least min_points points). Also the white-noise reference var / n_bin, with
+    var the point noise variance (sigma_z^2 of the cells; var(z) of a whole piece would hold the rail geometry).
     Returns arrays (sum of half squared differences, number of differences, sum of white reference) per tau, to be
     pooled over pieces by the caller."""
+    e = z - np.median(z)
     a_sum, a_cnt, w_sum = np.zeros(len(taus)), np.zeros(len(taus)), np.zeros(len(taus))
-    var = np.var(e)
     for i, tau in enumerate(taus):
         j = np.floor((u - u.min()) / tau).astype(int)
         cnt = np.bincount(j)

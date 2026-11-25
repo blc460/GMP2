@@ -1,22 +1,21 @@
-"""Step 7: Allan deviation of the height residuals along the rail: are the bins of a cell independent?
+"""Step 7: Allan deviation of the heights along the rail: are the bins of a cell independent?
 
 Usage: python processing/07_allan.py
 
 The n_bins (8) bins per cell (sigma_Z_bins) and the bootstrap blocks (sigma_Z_boot) assume that the noise is uncorrelated
 beyond the bin / block length. This is checked along whole 5 m pieces of rail (more data than one 0.5 m cell):
 
-1. Per piece (cells.py; only points of kept cells, no switches): residuals about the rail surface
-   z = a + b u + c u^2 + d v + e v^2 (u along, v across; `allan_u_order` = 2 allows a vertical curve).
-2. For each bin length tau (`allan_tau`): cut the piece into bins of tau along the rail, take the mean residual per
+1. Per piece (cells.py; only points of kept cells, no switches): the levelled heights as they are (no model).
+2. For each bin length tau (`allan_tau`): cut the piece into bins of tau along the rail, take the mean height per
    bin and the Allan variance  sigma_A^2(tau) = 1/2 < (mean_{k+1} - mean_k)^2 >  over adjacent bins
    (Allan 1966; non-overlapping). Pooled over all pieces of a scanner and station.
-3. Reference for uncorrelated (white) noise: var(e) / n_bin, i.e. sigma_A falls with tau^-1/2.
+3. Reference for uncorrelated (white) noise: sigma_z^2 / n_bin (sigma_z of the cells, as in 01), i.e. sigma_A falls with tau^-1/2.
    ratio = sigma_A / white. ratio ~ 1: the bin means are independent at this tau; ratio > 1: correlated noise (or
-   rail geometry that is not in the surface model) at this scale.
+   rail geometry: gradient, cant, crown, not removed) at this scale.
 
 Read: the bins of a cell are fine if the ratio is ~1 at tau = cell / n_bins (0.0625 m); blocks of the bootstrap
-should be at least as long as the tau where the ratio stops growing. At tau close to the piece length the
-parabola along the rail absorbs part of the variation, so the largest tau are biased low.
+should be at least as long as the tau where the ratio stops growing. The gradient of the rail adds to sigma_A
+at large tau (a slope b gives sigma_A = b tau / sqrt(2)).
 
 Input: point clouds (datasets.csv). Output: results/<sok|lip>/07_allan.csv and 07_allan.png
 """
@@ -27,7 +26,7 @@ import numpy as np
 import pandas as pd
 
 from cells import OUT, along_across, cells, cfg, datasets, group_keys, iter_cells, level, read
-from precision import allan, residuals
+from precision import allan, mad_sigma
 
 TAU = np.array(cfg["allan_tau"], float)
 
@@ -37,17 +36,18 @@ def process(ds):
     p, origin, _ = level(p, origin)
     _, piece, cell = cells(p)
     keep = np.zeros(len(p), bool)
+    var = np.full(len(p), np.nan)                         # sigma_z^2 of the point's cell
     for c in iter_cells(p, cell):
         if c.status == "keep":
             keep[c.idx] = True
+            var[c.idx] = mad_sigma(p[c.idx, 2]) ** 2
     a_sum, a_cnt, w_sum, pieces = np.zeros(len(TAU)), np.zeros(len(TAU)), np.zeros(len(TAU)), 0
     for q in np.unique(piece[keep]):
         idx = np.flatnonzero(keep & (piece == q))
         if len(idx) < 100:
             continue
-        u, v = along_across(p[idx, :2])
-        e = residuals(u, v, p[idx, 2], cfg["surface"], cfg["outlier_k"], cfg["allan_u_order"])
-        a, n, w = allan(u, e, TAU)
+        u, _ = along_across(p[idx, :2])
+        a, n, w = allan(u, p[idx, 2], TAU, np.mean(var[idx]))
         a_sum, a_cnt, w_sum, pieces = a_sum + a, a_cnt + n, w_sum + w, pieces + 1
     return a_sum, a_cnt, w_sum, pieces
 

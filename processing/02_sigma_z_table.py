@@ -1,7 +1,6 @@
 """Step 2: table of sigma_z and sigma_Z per scanner and station (setup), slant range bin and incidence bin.
 
-Per bin: number of cells, median and 25 % / 75 % quantile of sigma_z (residuals) and the median of sigma_z_raw, and
-the median of the three sigma_Z estimators (sqrt(n), n_bins bins, block bootstrap, see precision.py). For sigma_z and
+Per bin: number of cells, median and 25 % / 75 % quantile of sigma_z, and the median of the three sigma_Z estimators (sqrt(n), n_bins bins, block bootstrap, see precision.py). For sigma_z and
 sigma_Z_bins the 95 % interval of the median comes from a bootstrap over the cells of the table bin
 (`table_boot_runs`; percentile interval). Bins with fewer than `min_cells` cells are flagged (indicative = True).
 With by_setup, the main table has one line per scanner and station; a pooled table per scanner is a summary.
@@ -42,7 +41,6 @@ def table(df, keys):
     g = df.groupby(keys + ["r_bin", "theta_bin"], observed=True)
     t = g["sigma_z_mm"].agg(segments="size", sigma_z_median_mm="median",
                             sigma_z_q25_mm=lambda x: x.quantile(0.25), sigma_z_q75_mm=lambda x: x.quantile(0.75))
-    t = t.join(g["sigma_z_raw_mm"].agg(sigma_z_raw_median_mm="median"))
     t = t.join(g[SIGMA_Z].median().rename(columns=lambda c: c.replace("_mm", "_median_mm")))
     for col in ("sigma_z_mm", "sigma_Z_bins_mm"):
         ci = g[col].apply(median_ci)
