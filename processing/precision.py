@@ -1,22 +1,35 @@
-"""Point noise sigma_z of a cell and the precision sigma_Z of its height Z (used by 01_segments.py).
+"""Point noise sigma_z of a cell and the precision sigma_Z of its height Z (used by 01_segments.py and 07_allan.py).
 
-sigma_z : scatter of one point about the cell height: 1.4826 * MAD of the levelled heights about their median.
-          The rail shape inside the cell (crown, slope) is part of it.
-sigma_Z : standard deviation of the cell height Z = median of the heights. Three estimators:
+Residuals: the rail surface of the cell is removed first by a least-squares fit
+                z = a + b u + c v + d v^2        (u along, v across the rail; d v^2 = crown of the railhead)
+           with one rejection of residuals beyond k MAD. The residuals e are the measurement noise; the slope along
+           the rail (gradient), the cant / inclination across it and the crown are geometry, not noise.
 
-  sqrt_n      sigma_z / sqrt(n). Assumes n independent points.
-  taubenheim  sigma_z / sqrt(n_eff), n_eff = effective number of measurements (Taubenheim 1969) in its 2D form on
-              the scan grid (Schmitz et al. 2020, Eq. 2). The autocorrelation is estimated from the data after the
-              trend of the rail surface is removed, because the formula needs a stationary series (Schmitz et al.
-              2021, workflow step 1). Only correlation inside the cell is seen, so it is still a lower bound.
-  sub         The cell is cut into m sub-cells along the rail (batch means). sigma_Z = s / sqrt(m), with s the
-              spread of the sub-cell heights about a straight line along the rail (the gradient is a trend, not
-              an error). Sub-cell height = 20 % trimmed mean: robust like the median, but not stuck on the 1 mm
-              height grid of the RTC360 (with ~5 sub-cells, quantised medians often lie exactly on a line and
-              give sigma_Z = 0). Assumes the sub-cells are independent, i.e. longer than the correlation length.
+sigma_z  : 1.4826 * MAD of the residuals e (point noise). The raw value (MAD of the levelled heights about their
+           median, rail shape included) is kept as sigma_z_raw.
+sigma_Z  : standard deviation of the cell height Z. Three estimators:
+
+  sqrt_n  sigma_z / sqrt(n). All n points assumed independent (lower bound if the noise is correlated).
+  bins    The cell is cut into m bins along the rail (m = 4 by default, 0.125 m each). Bin height h_k = trimmed mean of
+          the residuals in bin k. Because a and b are already fitted, the h_k scatter about zero with m - 2 degrees
+          of freedom:
+                s^2 = sum h_k^2 / (m - 2),        sigma_Z = s / sqrt(m)              (batch means)
+          Correlation shorter than a bin is contained in s. Assumes the bins are independent, i.e. longer than the
+          correlation length: checked with the Allan deviation (07_allan.py). With m = 4 the estimate has only
+          2 degrees of freedom; its 95 % interval from the chi-square distribution is returned too.
+  boot    Circular block bootstrap along the rail (Kuensch 1989; Politis & Romano 1992): the residuals are cut into
+          slices of `slice` along u, blocks of `block` (contiguous slices, any start, wrapping round) are drawn with
+          replacement until the cell is full again, and sigma_Z = standard deviation of the mean of the
+          bootstrapped residuals. Keeps correlation shorter than the block, misses longer correlation, so it lies
+          between sqrt_n and the truth. A point-wise (iid) bootstrap would only reproduce sqrt_n.
+
+Only correlation inside the cell is seen, so all three are lower bounds of the full uncertainty of a rail height;
+errors common to a whole scan (levelling, scanner calibration) are not included.
+
+The Taubenheim estimator (n_eff from the 2D autocorrelation) was tried and dropped: archive/taubenheim.py.
 """
 import numpy as np
-from scipy.stats import trim_mean
+from scipy.stats import chi2, trim_mean
 
 MAD_TO_SIGMA = 1.4826
 
@@ -31,71 +44,99 @@ def sigma_Z_sqrt_n(sigma_z, n):
     return sigma_z / np.sqrt(n)
 
 
-# --- Taubenheim ------------------------------------------------------------------------------------------------
+# --- residuals ----------------------------------------------------------------------------------------------------
 
-def detrend(u, v, z, model="plane"):
-    """Residuals of z after removing the rail surface (u along, v across the rail): plane, or plane + crown (v^2)."""
-    cols = [np.ones_like(u), u, v] + ([v ** 2] if model == "plane+crown" else [])
-    A = np.column_stack(cols)
-    return z - A @ np.linalg.lstsq(A, z, rcond=None)[0]
-
-
-def autocorrelation_2d(e, col, row):
-    """Empirical autocorrelation of e on the scan grid (ScanColumn, ScanRow), gaps allowed.
-    Returns K and the number of point pairs for all lags (centre = lag 0) and the grid size (nx, ny)."""
-    i, j = col - col.min(), row - row.min()
-    nx, ny = int(i.max()) + 1, int(j.max()) + 1
-    val, cnt = np.zeros((nx, ny)), np.zeros((nx, ny))
-    np.add.at(val, (i, j), e)
-    np.add.at(cnt, (i, j), 1)
-    occ = cnt > 0
-    val[occ] /= cnt[occ]                              # two returns on one grid node: their mean
-    val[occ] -= val[occ].mean()
-    shape = (2 * nx - 1, 2 * ny - 1)
-
-    def corr(a):                                      # sum over all pairs at each lag, via FFT
-        f = np.fft.rfft2(a, shape)
-        return np.fft.fftshift(np.fft.irfft2(f * np.conj(f), shape), axes=(0, 1))
-
-    pairs = np.rint(corr(occ.astype(float)))
-    cov = np.divide(corr(val), pairs, out=np.zeros(shape), where=pairs > 0)
-    var = cov[nx - 1, ny - 1]
-    return (cov / var if var > 0 else np.zeros(shape)), pairs, (nx, ny)
+def design(u, v, model="plane+crown", u_order=1):
+    """Columns of the surface model: 1, u (.. u^u_order), v and, for plane+crown, v^2."""
+    cols = [np.ones_like(u)] + [u ** k for k in range(1, u_order + 1)] + [v]
+    if model == "plane+crown":
+        cols.append(v ** 2)
+    elif model != "plane":
+        raise ValueError(f"unknown model {model!r}")
+    return np.column_stack(cols)
 
 
-def n_eff_taubenheim(e, col, row, max_lag_fraction=0.1):
-    """Effective number of measurements of the residuals e on the scan grid, clipped to [1, n].
-
-        Var(mean) = sigma^2/n * (1 + sum_{lag != 0} pairs(lag)/n * K(lag))   =>   n_eff = n / (1 + sum ...)
-
-    This is Taubenheim's n_eff = n / (1 + 2 sum_k (n-k)/n K(k)) in 2D; pairs(lag)/n takes the place of (n-k)/n on
-    the irregular footprint of a cell. Lags are summed up to max_lag_fraction of the grid extent per direction
-    (m = n/10 in Schmitz et al. 2020), at least one grid step."""
-    K, pairs, (nx, ny) = autocorrelation_2d(np.asarray(e, float), np.asarray(col, int), np.asarray(row, int))
-    mx = max(1, int(round(max_lag_fraction * nx)))
-    my = max(1, int(round(max_lag_fraction * ny)))
-    win = (slice(nx - 1 - mx, nx + mx), slice(ny - 1 - my, ny + my))
-    k, p = K[win], pairs[win].copy()
-    nodes = p[mx, my]                                 # number of occupied grid nodes = pairs at lag 0
-    p[mx, my] = 0
-    n = len(e)
-    return float(np.clip(n / (1 + np.sum(p * k) / nodes), 1, n))
+def residuals(u, v, z, model="plane+crown", k=3.0, u_order=1):
+    """Residuals of z about the rail surface (least squares; points beyond k MAD dropped once, then refitted).
+    All points keep a residual (the dropped ones too), so that noise statistics stay robust but complete."""
+    u = u - u.mean()
+    v = v - v.mean()
+    A = design(u, v, model, u_order)
+    b = np.linalg.lstsq(A, z, rcond=None)[0]
+    e = z - A @ b
+    s = mad_sigma(e)
+    if s > 0:
+        keep = np.abs(e - np.median(e)) <= k * s
+        if keep.sum() > A.shape[1]:
+            b = np.linalg.lstsq(A[keep], z[keep], rcond=None)[0]
+            e = z - A @ b
+    return e
 
 
-# --- sub-cells (batch means) -----------------------------------------------------------------------------------
+# --- bins (batch means) -----------------------------------------------------------------------------------------
 
-def sigma_Z_sub(u, z, sub_cell=0.1, min_points=5, min_cells=4, trim=0.2):
-    """sigma_Z from the trimmed means (trim per side) of sub-cells of length sub_cell along the rail coordinate u.
-    Returns (sigma_Z, m) with m the number of usable sub-cells; NaN if m < min_cells."""
-    k = np.floor((u - u.min()) / sub_cell).astype(int)
-    centre, height = [], []
-    for kk in np.unique(k):
-        m = k == kk
-        if m.sum() >= min_points:
-            centre.append(u[m].mean())
-            height.append(trim_mean(z[m], trim))
-    m = len(height)
-    if m < max(min_cells, 3):
-        return np.nan, m
-    res = np.asarray(height) - np.polyval(np.polyfit(centre, height, 1), centre)
-    return np.sqrt(np.sum(res ** 2) / (m - 2)) / np.sqrt(m), m
+def bin_index(u, m):
+    """Index 0 .. m-1 of m equal bins over the extent of u."""
+    lo, hi = u.min(), u.max()
+    return np.minimum(((u - lo) / (hi - lo + 1e-12) * m).astype(int), m - 1)
+
+
+def sigma_Z_bins(u, e, m=4, min_points=5, trim=0.2, level=0.95):
+    """sigma_Z from m bins of the residuals e along u (batch means, see module doc).
+    Returns (sigma_Z, lower, upper, m_used); NaN if fewer than m bins have min_points points."""
+    k = bin_index(u, m)
+    h = [trim_mean(e[k == j], trim) for j in range(m) if (k == j).sum() >= min_points]
+    if len(h) < m:
+        return np.nan, np.nan, np.nan, len(h)
+    dof = m - 2
+    s = np.sqrt(np.sum(np.square(h)) / dof) / np.sqrt(m)
+    a = (1 - level) / 2
+    return s, s * np.sqrt(dof / chi2.ppf(1 - a, dof)), s * np.sqrt(dof / chi2.ppf(a, dof)), m
+
+
+# --- moving-block bootstrap -------------------------------------------------------------------------------------
+
+def sigma_Z_boot(u, e, block=0.0625, slice_=0.01, runs=200, rng=None):
+    """Circular block bootstrap of the mean of the residuals e along u (see module doc). Returns sigma_Z.
+    The residuals are summed per slice of `slice_`; a block is L = block / slice_ contiguous slices (wrapping round
+    the end of the cell, so every slice is used equally often); k = S / L blocks rebuild a cell of S slices.
+    The bootstrap variance of a mean is biased low by the factor (1 - L/S) even for white noise; it is corrected."""
+    rng = np.random.default_rng(0) if rng is None else rng
+    j = np.floor((u - u.min()) / slice_).astype(int)
+    S = j.max() + 1
+    L = max(1, int(round(block / slice_)))
+    if 2 * L > S:
+        return np.nan
+    sums = np.bincount(j, e, S)
+    cnts = np.bincount(j, minlength=S).astype(float)
+    wrap = np.r_[np.arange(S), np.arange(L - 1)]               # circular: blocks may run past the end
+    bsum = np.convolve(sums[wrap], np.ones(L), "valid")        # sum and count of the S blocks
+    bcnt = np.convolve(cnts[wrap], np.ones(L), "valid")
+    k = max(2, int(round(S / L)))
+    pick = rng.integers(0, S, size=(runs, k))
+    means = bsum[pick].sum(axis=1) / np.maximum(bcnt[pick].sum(axis=1), 1)
+    return float(np.std(means, ddof=1) * np.sqrt(k * L / S / (1 - L / S)))
+
+
+# --- Allan deviation --------------------------------------------------------------------------------------------
+
+def allan(u, e, taus, min_points=3):
+    """Allan variance of the residuals e along u for each bin length tau: half the mean squared difference of the
+    means of adjacent bins (both with at least min_points points). Also the white-noise reference var(e) / n_bin.
+    Returns arrays (sum of half squared differences, number of differences, sum of white reference) per tau, to be
+    pooled over pieces by the caller."""
+    a_sum, a_cnt, w_sum = np.zeros(len(taus)), np.zeros(len(taus)), np.zeros(len(taus))
+    var = np.var(e)
+    for i, tau in enumerate(taus):
+        j = np.floor((u - u.min()) / tau).astype(int)
+        cnt = np.bincount(j)
+        mean = np.bincount(j, e) / np.maximum(cnt, 1)
+        ok = (cnt[:-1] >= min_points) & (cnt[1:] >= min_points)
+        if not ok.any():
+            continue
+        d = np.diff(mean)[ok]
+        n_pair = 2 / (1 / cnt[:-1][ok] + 1 / cnt[1:][ok])        # harmonic mean of the two bin sizes
+        a_sum[i] = 0.5 * np.sum(d ** 2)
+        a_cnt[i] = len(d)
+        w_sum[i] = np.sum(var / n_pair)
+    return a_sum, a_cnt, w_sum

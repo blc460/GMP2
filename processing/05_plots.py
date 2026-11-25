@@ -5,7 +5,7 @@
 - sigma_r_theta: the cells at their r and theta_ground, colour = sigma_z (log scale 0.3 to 3 mm in all figures).
 - sigma_z_r_and_theta: sigma_z over r and over theta_ground, one dot per cell (linear axis, no median line).
 - sigma_Z_<method>_r_and_theta: sigma_Z of the cell height over r and theta_ground, one dot per cell, with the
-  required values (`requirements`) as horizontal lines; method = sqrt_n, taubenheim or sub (see precision.py).
+  required values (`requirements`) as horizontal lines; method = sqrt_n, bins or boot (see precision.py).
 Axes are the same in all figures of a rail_class.
 
 Input: results/<sok|lip>/01_segments.csv. Output: results/<sok|lip>/figures/05_<scanner>_<station>_<plot>.png
@@ -24,8 +24,8 @@ FOLDER = OUT / "figures"
 EDGES = dict(theta_ground_deg=np.array(cfg["incidence"]), r_m=np.array(cfg["distance"]))
 LABELS = dict(theta_ground_deg=r"incidence angle $\theta$ [deg]", r_m="slant range $r$ [m]")
 STYLE = {"S1": ("tab:blue", "o"), "S2": ("tab:orange", "s"), "S3": ("tab:green", "^"), "S4": ("tab:purple", "D")}
-METHODS = {"sqrt_n": r"$\sigma_Z = \sigma_z/\sqrt{n}$", "taubenheim": r"$\sigma_Z = \sigma_z/\sqrt{n_{eff}}$",
-           "sub": r"$\sigma_Z$ from sub-cells"}
+METHODS = {"sqrt_n": r"$\sigma_Z = \sigma_z/\sqrt{n}$", "bins": r"$\sigma_Z$ from 4 bins ($s/\sqrt{4}$)",
+           "boot": r"$\sigma_Z$ from block bootstrap"}
 NORM = LogNorm(0.3, 3.0)
 
 

@@ -1,7 +1,9 @@
 """Step 2: table of sigma_z and sigma_Z per scanner and station (setup), slant range bin and incidence bin.
 
-Per bin: number of cells, median and 25 % / 75 % quantile of sigma_z, and the median of the three sigma_Z
-estimators (sqrt(n), Taubenheim, sub-cells). Bins with fewer than `min_cells` cells are flagged (indicative = True).
+Per bin: number of cells, median and 25 % / 75 % quantile of sigma_z (residuals) and the median of sigma_z_raw, and
+the median of the three sigma_Z estimators (sqrt(n), 4 bins, block bootstrap, see precision.py). For sigma_z and
+sigma_Z_bins the 95 % interval of the median comes from a bootstrap over the cells of the table bin
+(`table_boot_runs`; percentile interval). Bins with fewer than `min_cells` cells are flagged (indicative = True).
 With by_setup, the main table has one line per scanner and station; a pooled table per scanner is a summary.
 
 Input: results/<sok|lip>/01_segments.csv.
@@ -10,11 +12,23 @@ Output: results/<sok|lip>/02_sigma_z_table.csv (and 02_sigma_z_table_pooled.csv)
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
 from cells import OUT, cfg, group_keys
 
-SIGMA_Z = ["sigma_Z_sqrt_n_mm", "sigma_Z_taubenheim_mm", "sigma_Z_sub_mm"]
+SIGMA_Z = ["sigma_Z_sqrt_n_mm", "sigma_Z_bins_mm", "sigma_Z_boot_mm"]
+RNG = np.random.default_rng(2026)
+
+
+def median_ci(x, runs=None, level=0.95):
+    """Percentile bootstrap interval of the median of x (cells resampled with replacement)."""
+    x = np.asarray(x, float)
+    x = x[np.isfinite(x)]
+    if len(x) < 2:
+        return np.nan, np.nan
+    m = np.median(x[RNG.integers(0, len(x), size=(runs or cfg["table_boot_runs"], len(x)))], axis=1)
+    return tuple(np.quantile(m, [(1 - level) / 2, (1 + level) / 2]))
 
 
 def load():
@@ -28,7 +42,13 @@ def table(df, keys):
     g = df.groupby(keys + ["r_bin", "theta_bin"], observed=True)
     t = g["sigma_z_mm"].agg(segments="size", sigma_z_median_mm="median",
                             sigma_z_q25_mm=lambda x: x.quantile(0.25), sigma_z_q75_mm=lambda x: x.quantile(0.75))
+    t = t.join(g["sigma_z_raw_mm"].agg(sigma_z_raw_median_mm="median"))
     t = t.join(g[SIGMA_Z].median().rename(columns=lambda c: c.replace("_mm", "_median_mm")))
+    for col in ("sigma_z_mm", "sigma_Z_bins_mm"):
+        ci = g[col].apply(median_ci)
+        base = col.replace("_mm", "_median")
+        t[f"{base}_ci_lo_mm"] = [c[0] for c in ci]
+        t[f"{base}_ci_hi_mm"] = [c[1] for c in ci]
     if "sigma_z_plane_mm" in df:                                             # optional plane fit
         t = t.join(g["sigma_z_plane_mm"].agg(sigma_z_plane_median_mm="median"))
     t["indicative"] = t["segments"] < cfg["min_cells"]

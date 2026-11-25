@@ -4,7 +4,7 @@ Usage: python processing/06_combine.py
 
 1. 06_cells.csv: one row per 0.5 m cell over all scans, with scanner, setting (resolution, quality),
    station, scanner height h above the railhead plane (h = r cos theta_ground), r, theta_ground,
-   sigma_z, the three sigma_Z (see precision.py), point count and density.
+   sigma_z (residuals) and sigma_z_raw, the three sigma_Z (see precision.py), point count and density.
 2. 06_r_theta_table.csv: sigma_z per range x angle bin, per scanner/setting (no pooling over r or theta
    alone): number of cells, stations in the bin, median, 25 % and 75 % quantile.
    Range bins every 5 m; angle bins every 10 deg up to 60 deg, then every 5 deg (most cells lie there).
@@ -36,8 +36,8 @@ c["resolution"] = c["scanner"].map(lambda s: SETTING.get(s, ("?", "?"))[0])
 c["quality"] = c["scanner"].map(lambda s: SETTING.get(s, ("?", "?"))[1])
 c["h_m"] = c["r_m"] * np.cos(np.radians(c["theta_ground_deg"]))
 cols = ["dataset", "scanner", "resolution", "quality", "setup", "condition", "rail", "cell", "x", "y",
-        "h_m", "r_m", "theta_ground_deg", "sigma_z_mm", "sigma_Z_sqrt_n_mm", "n_eff", "sigma_Z_taubenheim_mm",
-        "sigma_Z_sub_mm", "n_sub", "n", "length_m", "width_m",
+        "h_m", "r_m", "theta_ground_deg", "sigma_z_mm", "sigma_z_raw_mm", "sigma_Z_sqrt_n_mm", "sigma_Z_bins_mm",
+        "sigma_Z_bins_lo_mm", "sigma_Z_bins_hi_mm", "n_bins", "sigma_Z_boot_mm", "n", "length_m", "width_m",
         "density_pts_m2", "rho_exp_pts_m2", "return_rate"]
 c[cols].to_csv(out / "06_cells.csv", index=False, float_format="%.5g")
 
@@ -63,7 +63,7 @@ def fit(y, X):
     return b, r2, mad, res
 
 rows = []
-for sc, s in c.groupby("scanner"):
+for sc, s in c[c["sigma_z_mm"] > 0].groupby("scanner"):    # sigma_z = 0: a cell of one scan line (1 mm height grid)
     y = np.log(s["sigma_z_mm"].to_numpy())
     lr = np.log(s["r_m"].to_numpy())
     lt = -np.log(np.cos(np.radians(s["theta_ground_deg"].to_numpy())))
