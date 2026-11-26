@@ -1,14 +1,14 @@
-"""Step 5: figures per scanner and station, and per scanner pooled over the stations (marker = station).
+"""Step 6: figures per scanner and station, and per scanner pooled over the stations (marker = station).
 
 - density_theta / density_r: point density [pts/m2] over the incidence angle / slant range, right axis = mean
   point spacing 1000 / sqrt(density) [mm]; dots = cells, line = median per bin, dashed = expected from the scan grid.
 - sigma_r_theta: the cells at their r and theta_ground, colour = sigma_z (log scale 0.3 to 3 mm in all figures).
 - sigma_z_r_and_theta: sigma_z over r and over theta_ground, one dot per cell (linear axis, no median line).
 - sigma_Z_<method>_r_and_theta: sigma_Z of the cell height over r and theta_ground, one dot per cell, with the
-  required values (`requirements`) as horizontal lines; method = sqrt_n, bins or boot (see precision.py).
+  required values (`requirements`) as horizontal lines; method = sqrt_n or bins (see precision.py).
 Axes are the same in all figures of a rail_class.
 
-Input: results/<sok|lip>/01_segments.csv. Output: results/<sok|lip>/figures/05_<scanner>_<station>_<plot>.png
+Input: results/<sok|lip>/02_cells.csv. Output: results/<sok|lip>/figures/06_<scanner>_<station>_<plot>.png
 """
 import matplotlib
 matplotlib.use("Agg")
@@ -24,14 +24,13 @@ FOLDER = OUT / "figures"
 EDGES = dict(theta_ground_deg=np.array(cfg["incidence"]), r_m=np.array(cfg["distance"]))
 LABELS = dict(theta_ground_deg=r"incidence angle $\theta$ [deg]", r_m="slant range $r$ [m]")
 STYLE = {"S1": ("tab:blue", "o"), "S2": ("tab:orange", "s"), "S3": ("tab:green", "^"), "S4": ("tab:purple", "D")}
-METHODS = {"sqrt_n": r"$\sigma_Z = \sigma_z/\sqrt{n}$", "bins": rf"$\sigma_Z$ from {cfg['n_bins']} bins ($s/\sqrt{{{cfg['n_bins']}}}$)",
-           "boot": r"$\sigma_Z$ from block bootstrap"}
+METHODS = {"sqrt_n": r"$\sigma_Z = \sigma_z/\sqrt{n}$", "bins": r"$\sigma_Z$ from bins ($s/\sqrt{m}$)"}
 NORM = LogNorm(0.3, 3.0)
 
 
 def save(fig, name, plot):
     fig.tight_layout()
-    fig.savefig(FOLDER / f"05_{name}_{plot}.png", dpi=200)
+    fig.savefig(FOLDER / f"06_{name}_{plot}.png", dpi=200)
     plt.close(fig)
 
 
@@ -103,7 +102,7 @@ def name_of(*parts):
 
 
 if __name__ == "__main__":
-    df = pd.read_csv(OUT / "01_segments.csv")
+    df = pd.read_csv(OUT / "02_cells.csv")
     FOLDER.mkdir(exist_ok=True)
     D_LIM = (df["density_pts_m2"].min() / 2, df["density_pts_m2"].max() * 2)
     groups = [(name_of(sc, st), g) for (sc, st), g in df.groupby(["scanner", "setup"])]

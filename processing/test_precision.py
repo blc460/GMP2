@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 from scipy import ndimage
 
-from precision import mad_sigma, sigma_Z_boot, sigma_Z_bins
+from precision import mad_sigma, sigma_Z_bins
 
 rng = np.random.default_rng(1)
 
@@ -30,7 +30,7 @@ def check(nx=120, ny=12, corr=0.0, coloured=0.0, runs=300, archive=False):
     col, row = col.ravel(), row.ravel()
     u = col / nx * 0.5
     v = (row / ny - 0.5) * 0.04
-    out = {k: [] for k in ("mean", "sqrt_n", "bins", "boot", "taub", "sub")}
+    out = {k: [] for k in ("mean", "sqrt_n", "bins", "bins4", "taub", "sub")}
     if archive:
         sys.path.insert(0, str(Path(__file__).resolve().parent / "archive"))
         from taubenheim import detrend, n_eff_taubenheim, sigma_Z_sub
@@ -39,14 +39,14 @@ def check(nx=120, ny=12, corr=0.0, coloured=0.0, runs=300, archive=False):
         z = noise
         out["mean"].append(np.median(z))
         out["sqrt_n"].append(mad_sigma(z) / np.sqrt(len(z)))
-        out["bins"].append(sigma_Z_bins(u, z)[0])
-        out["boot"].append(sigma_Z_boot(u, z, rng=rng))
+        out["bins"].append(sigma_Z_bins(u, z, 8, rng=rng)[0])
+        out["bins4"].append(sigma_Z_bins(u, z, 4, rng=rng)[0])
         if archive:
             out["taub"].append(mad_sigma(z) / np.sqrt(n_eff_taubenheim(detrend(u, v, z), col, row)))
             out["sub"].append(sigma_Z_sub(u, z)[0])
     true = np.std(out["mean"])
     line = (f"corr {corr:3.0f} steps, coloured {coloured:3.0%}: true {true:.4f} | "
-            + "  ".join(f"{k} {np.nanmedian(out[k]) / true:4.2f}" for k in ("sqrt_n", "bins", "boot")))
+            + "  ".join(f"{k} {np.nanmedian(out[k]) / true:4.2f}" for k in ("sqrt_n", "bins", "bins4")))
     if archive:
         line += "  " + "  ".join(f"{k} {np.nanmedian(out[k]) / true:4.2f}" for k in ("taub", "sub"))
     bins = np.array(out["bins"]) / true

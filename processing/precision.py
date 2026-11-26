@@ -1,31 +1,28 @@
-"""Point noise sigma_z of a cell and the precision sigma_Z of its height Z (used by 01_segments.py and 07_allan.py).
+"""Point noise sigma_z of a cell and the precision sigma_Z of its height Z (used by 01_allan.py and 02_cells.py).
 
 All values come from the levelled heights z of the cell as they are: no surface model is fitted per cell, so the
-slope, cant and crown of the rail inside the cell stay in the numbers (known limitation, see README).
+slope, cant and crown of the rail inside the cell stay in the numbers (accepted, see README).
 
-sigma_z  : 1.4826 * MAD of the heights about their median (point noise including the rail shape in the cell).
-sigma_Z  : standard deviation of the cell height Z (median of the heights). Three estimators:
+sigma_z  : 1.4826 * MAD of the heights about their median (point noise, rail shape in the cell included).
+sigma_Z  : standard deviation of the cell height Z (median of the heights). Two estimators:
 
-  sqrt_n  sigma_z / sqrt(n). All n points assumed independent (lower bound if the noise is correlated).
-  bins    The cell is cut into m bins along the rail (m = 8 by default, 0.0625 m each). Bin height h_k = 20 % trimmed
-          mean of the heights in bin k. With s = standard deviation of the m bin heights (m - 1 degrees of freedom):
+  sqrt_n  sigma_z / sqrt(n). All n points assumed independent (too small if the noise is correlated).
+  bins    The cell is cut into m bins along the rail. Bin height h_k = 20 % trimmed mean of the heights in bin k.
+          With s = standard deviation of the m bin heights:
                 sigma_Z = s / sqrt(m)                                                    (batch means)
-          Correlation shorter than a bin is contained in s. Assumes the bins are independent, i.e. longer than the
-          correlation length: checked with the Allan deviation (07_allan.py). The 95 % interval of s from the
-          chi-square distribution is returned too.
-  boot    Circular block bootstrap along the rail (Kuensch 1989; Politis & Romano 1992): the heights are cut into
-          slices of `slice` along u, blocks of `block` (contiguous slices, any start, wrapping round) are drawn with
-          replacement until the cell is full again, and sigma_Z = standard deviation of the mean of the
-          bootstrapped heights. Keeps correlation shorter than the block, misses longer correlation.
-          A point-wise (iid) bootstrap would only reproduce sqrt_n.
+          Correlation shorter than a bin is contained in s; the bins must be at least as long as the correlation,
+          so m comes from the Allan deviation (01_allan.py, `allan_rule`). If a bin has fewer than `min_points`
+          points, the cell uses fewer bins (m - 1, ... down to `min_bins`): longer bins are still independent.
+          95 % interval: bootstrap of the m bin heights (percentile interval of s / sqrt(m) over `runs`
+          resamples). With few bins (m <= 5) the interval is coarse and too narrow; it is a rough guide only.
 
-Only correlation inside the cell is seen, so all three are lower bounds of the full uncertainty of a rail height;
-errors common to a whole scan (levelling, scanner calibration) are not included.
+Only correlation inside the cell is seen, so sigma_Z is the random part of the uncertainty of one cell height within
+one scan; errors common to a whole scan (levelling, scanner calibration, scanner position) are not included.
 
-The Taubenheim estimator (n_eff from the 2D autocorrelation) was tried and dropped: archive/taubenheim.py.
+Tried and dropped: Taubenheim n_eff (archive/taubenheim.py) and a per-cell block bootstrap of the mean.
 """
 import numpy as np
-from scipy.stats import chi2, trim_mean
+from scipy.stats import trim_mean
 
 MAD_TO_SIGMA = 1.4826
 
@@ -48,42 +45,29 @@ def bin_index(u, m):
     return np.minimum(((u - lo) / (hi - lo + 1e-12) * m).astype(int), m - 1)
 
 
-def sigma_Z_bins(u, z, m=8, min_points=5, trim=0.2, level=0.95):
-    """sigma_Z from m bins of the heights z along u (batch means, see module doc).
-    Returns (sigma_Z, lower, upper, m_used); NaN if fewer than m bins have min_points points."""
+def bin_heights(u, z, m, min_points=5, trim=0.2):
+    """Trimmed-mean heights of m equal bins along u, or None if a bin has fewer than min_points points."""
     k = bin_index(u, m)
-    h = [trim_mean(z[k == j], trim) for j in range(m) if (k == j).sum() >= min_points]
-    if len(h) < m:
-        return np.nan, np.nan, np.nan, len(h)
-    dof = m - 1
-    s = np.std(h, ddof=1) / np.sqrt(m)
-    a = (1 - level) / 2
-    return s, s * np.sqrt(dof / chi2.ppf(1 - a, dof)), s * np.sqrt(dof / chi2.ppf(a, dof)), m
+    if np.bincount(k, minlength=m).min() < min_points:
+        return None
+    return np.array([trim_mean(z[k == j], trim) for j in range(m)])
 
 
-# --- moving-block bootstrap -------------------------------------------------------------------------------------
-
-def sigma_Z_boot(u, z, block=0.0625, slice_=0.01, runs=200, rng=None):
-    """Circular block bootstrap of the mean of the heights z along u (see module doc). Returns sigma_Z.
-    The heights (about their median) are summed per slice of `slice_`; a block is L = block / slice_ contiguous slices (wrapping round
-    the end of the cell, so every slice is used equally often); k = S / L blocks rebuild a cell of S slices.
-    The bootstrap variance of a mean is biased low by the factor (1 - L/S) even for white noise; it is corrected."""
+def sigma_Z_bins(u, z, m=8, min_bins=4, min_points=5, trim=0.2, runs=1000, level=0.95, rng=None):
+    """sigma_Z from bins of the heights z along u (batch means, see module doc), with m bins or, if a bin has fewer
+    than min_points points, the largest number of bins between min_bins and m for which all bins have enough.
+    Returns (sigma_Z, lower, upper, m_used); NaN and m_used = 0 if even min_bins bins are too sparse."""
+    for mm in range(m, min_bins - 1, -1):
+        h = bin_heights(u, z, mm, min_points, trim)
+        if h is not None:
+            break
+    else:
+        return np.nan, np.nan, np.nan, 0
+    s = np.std(h, ddof=1) / np.sqrt(mm)
     rng = np.random.default_rng(0) if rng is None else rng
-    e = z - np.median(z)
-    j = np.floor((u - u.min()) / slice_).astype(int)
-    S = j.max() + 1
-    L = max(1, int(round(block / slice_)))
-    if 2 * L > S:
-        return np.nan
-    sums = np.bincount(j, e, S)
-    cnts = np.bincount(j, minlength=S).astype(float)
-    wrap = np.r_[np.arange(S), np.arange(L - 1)]               # circular: blocks may run past the end
-    bsum = np.convolve(sums[wrap], np.ones(L), "valid")        # sum and count of the S blocks
-    bcnt = np.convolve(cnts[wrap], np.ones(L), "valid")
-    k = max(2, int(round(S / L)))
-    pick = rng.integers(0, S, size=(runs, k))
-    means = bsum[pick].sum(axis=1) / np.maximum(bcnt[pick].sum(axis=1), 1)
-    return float(np.std(means, ddof=1) * np.sqrt(k * L / S / (1 - L / S)))
+    boot = np.std(h[rng.integers(0, mm, size=(runs, mm))], axis=1, ddof=1) / np.sqrt(mm)
+    lo, hi = np.quantile(boot, [(1 - level) / 2, (1 + level) / 2])
+    return s, lo, hi, mm
 
 
 # --- Allan deviation --------------------------------------------------------------------------------------------

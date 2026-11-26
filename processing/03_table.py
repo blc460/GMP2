@@ -1,12 +1,12 @@
-"""Step 2: table of sigma_z and sigma_Z per scanner and station (setup), slant range bin and incidence bin.
+"""Step 3: table of sigma_z and sigma_Z per scanner and station (setup), slant range bin and incidence bin.
 
-Per bin: number of cells, median and 25 % / 75 % quantile of sigma_z, and the median of the three sigma_Z estimators (sqrt(n), n_bins bins, block bootstrap, see precision.py). For sigma_z and
+Per bin: number of cells, median and 25 % / 75 % quantile of sigma_z, and the median of the two sigma_Z estimators (sqrt(n) and bins, see precision.py). For sigma_z and
 sigma_Z_bins the 95 % interval of the median comes from a bootstrap over the cells of the table bin
 (`table_boot_runs`; percentile interval). Bins with fewer than `min_cells` cells are flagged (indicative = True).
 With by_setup, the main table has one line per scanner and station; a pooled table per scanner is a summary.
 
-Input: results/<sok|lip>/01_segments.csv.
-Output: results/<sok|lip>/02_sigma_z_table.csv (and 02_sigma_z_table_pooled.csv) and 02_sigma_z.png
+Input: results/<sok|lip>/02_cells.csv.
+Output: results/<sok|lip>/03_table.csv (and 03_table_pooled.csv) and 03_sigma_z.png
 """
 import matplotlib
 matplotlib.use("Agg")
@@ -16,7 +16,7 @@ import pandas as pd
 
 from cells import OUT, cfg, group_keys
 
-SIGMA_Z = ["sigma_Z_sqrt_n_mm", "sigma_Z_bins_mm", "sigma_Z_boot_mm"]
+SIGMA_Z = ["sigma_Z_sqrt_n_mm", "sigma_Z_bins_mm"]
 RNG = np.random.default_rng(2026)
 
 
@@ -31,7 +31,7 @@ def median_ci(x, runs=None, level=0.95):
 
 
 def load():
-    df = pd.read_csv(OUT / "01_segments.csv")
+    df = pd.read_csv(OUT / "02_cells.csv")
     df["r_bin"] = pd.cut(df["r_m"], cfg["distance"], right=False)
     df["theta_bin"] = pd.cut(df["theta_ground_deg"], cfg["incidence"], right=False)
     return df
@@ -67,14 +67,14 @@ def overview(df):
     ax[1].set(xlabel=r"incidence angle $\theta$ [deg]")
     ax[0].legend(fontsize=7, markerscale=2)
     fig.tight_layout()
-    fig.savefig(OUT / "02_sigma_z.png", dpi=200)
+    fig.savefig(OUT / "03_sigma_z.png", dpi=200)
 
 
 if __name__ == "__main__":
     df = load()
     main = table(df, group_keys())
-    main.to_csv(OUT / "02_sigma_z_table.csv", index=False)
+    main.to_csv(OUT / "03_table.csv", index=False)
     print(main.to_string(index=False))
     if cfg["by_setup"]:
-        table(df, group_keys(by_setup=False)).to_csv(OUT / "02_sigma_z_table_pooled.csv", index=False)
+        table(df, group_keys(by_setup=False)).to_csv(OUT / "03_table_pooled.csv", index=False)
     overview(df)

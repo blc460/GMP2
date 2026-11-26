@@ -45,8 +45,8 @@ Why it was dropped:
 
 sigma_Z_sub = spread of the 20 % trimmed means of 0.1 m sub-cells (about 5 per
 cell) about a straight line along the rail, divided by sqrt(m). Replaced by
-`precision.sigma_Z_bins` (8 bins of 0.0625 m, length from the Allan
-deviation, standard deviation of the bin heights / sqrt(8), no line fit),
+`precision.sigma_Z_bins` (m bins per scanner from the Allan rule, standard
+deviation of the bin heights / sqrt(m), no line fit),
 because with 5 sub-cells and a fitted line it had 3 degrees of freedom: one
 cell's value scattered by a factor 4 to 7 (10 to 90 % quantile).
 
@@ -61,3 +61,19 @@ cell's value scattered by a factor 4 to 7 (10 to 90 % quantile).
   determination of correlations in terrestrial laser scanner range
   observations and the comparison of the correlation structure of different
   scanners. ISPRS J. Photogramm. Remote Sens. 182, 228-241.
+
+## Per-cell block bootstrap of the mean height
+
+sigma_Z_boot = standard deviation of the mean height over 200 circular block
+bootstrap resamples along the rail (1 cm slices, 6.25 cm blocks; Kuensch 1989,
+Politis & Romano 1992), with the (1 - L/S) bias correction. It gave values
+close to the bins (median RTC360 0.136, FARO 0.13 to 0.17 mm vs bins 0.125,
+0.12 to 0.14 mm) and measured the same thing (correlation shorter than a
+block), so it was dropped in favour of the bins; the bootstrap is now used only
+for the 95 % intervals (bin heights per cell, cells per class). Last version
+with it: commit 72daffa on `rail-axis-cells`.
+
+- Kuensch, H. R. (1989). The jackknife and the bootstrap for general stationary
+  observations. Ann. Statist. 17(3), 1217-1241.
+- Politis, D. N., Romano, J. P. (1992). A circular block-resampling procedure
+  for stationary data. In: Exploring the Limits of Bootstrap, Wiley, 263-270.

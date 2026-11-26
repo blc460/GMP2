@@ -21,7 +21,7 @@ _, p0, origin0 = read(ds)
 p, origin, tilt = level(p0, origin0)
 rail, piece, cell = cells(p)
 
-# status per cell, with the same rules as 01_segments.py: kept, dropped (switch) or too few points
+# status per cell, with the same rules as 02_cells.py: kept, dropped (switch) or too few points
 status, w_cell = {}, {}
 for c in iter_cells(p, cell):
     status[c.id] = {"keep": "keep", "switch": "drop", "few": "few"}[c.status]
