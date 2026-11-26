@@ -1,0 +1,149 @@
+scanner,split_by,split,theta_bin,cells,classes,r_data_min_m,r_data_max_m,r_max_0.67_m,limited_by_0.67,r_max_1.2_m,limited_by_1.2
+FARO 1/1 Q3,all,all,"[20, 30)",0,0,,,,no data,,no data
+FARO 1/1 Q3,all,all,"[30, 40)",10,1,10.0,15.0,,sigma_Z,15.0,data
+FARO 1/1 Q3,all,all,"[40, 50)",13,1,10.0,15.0,15.0,data,15.0,data
+FARO 1/1 Q3,all,all,"[50, 60)",31,2,10.0,20.0,20.0,data,20.0,data
+FARO 1/1 Q3,all,all,"[60, 70)",62,3,0.0,25.0,25.0,data,25.0,data
+FARO 1/1 Q3,all,all,"[70, 80)",204,6,5.0,50.0,35.0,sigma_Z,50.0,data
+FARO 1/1 Q3,all,all,"[80, 90)",154,7,10.0,60.0,35.0,sigma_Z,60.0,data
+FARO 1/1 Q3,all,all,all,497,12,0.0,60.0,35.0,sigma_Z,60.0,data
+FARO 1/2 Q4,all,all,"[20, 30)",0,0,,,,no data,,no data
+FARO 1/2 Q4,all,all,"[30, 40)",0,0,,,,no data,,no data
+FARO 1/2 Q4,all,all,"[40, 50)",23,1,5.0,10.0,10.0,data,10.0,data
+FARO 1/2 Q4,all,all,"[50, 60)",36,2,5.0,15.0,15.0,data,15.0,data
+FARO 1/2 Q4,all,all,"[60, 70)",96,4,0.0,25.0,25.0,data,25.0,data
+FARO 1/2 Q4,all,all,"[70, 80)",200,6,5.0,40.0,35.0,sigma_Z,40.0,data
+FARO 1/2 Q4,all,all,"[80, 90)",118,4,10.0,35.0,35.0,data,35.0,data
+FARO 1/2 Q4,all,all,all,516,8,0.0,40.0,35.0,sigma_Z,40.0,data
+RTC360,all,all,"[30, 40)",23,2,5.0,15.0,15.0,data,15.0,data
+RTC360,all,all,"[40, 50)",50,2,5.0,15.0,15.0,data,15.0,data
+RTC360,all,all,"[50, 60)",124,3,5.0,20.0,20.0,data,20.0,data
+RTC360,all,all,"[60, 70)",201,4,0.0,25.0,25.0,data,25.0,data
+RTC360,all,all,"[70, 80)",360,5,5.0,35.0,35.0,data,35.0,data
+RTC360,all,all,"[80, 90)",165,3,10.0,35.0,35.0,data,35.0,data
+RTC360,all,all,all,951,7,0.0,35.0,35.0,data,35.0,data
+FARO 1/1 Q3,rail_side,far,"[30, 40)",0,0,,,,no data,,no data
+FARO 1/1 Q3,rail_side,far,"[40, 50)",0,0,,,,no data,,no data
+FARO 1/1 Q3,rail_side,far,"[50, 60)",0,0,,,,no data,,no data
+FARO 1/1 Q3,rail_side,far,"[60, 70)",11,1,20.0,25.0,25.0,data,25.0,data
+FARO 1/1 Q3,rail_side,far,"[70, 80)",65,4,5.0,40.0,35.0,sigma_Z,40.0,data
+FARO 1/1 Q3,rail_side,far,"[80, 90)",32,2,10.0,20.0,20.0,data,20.0,data
+FARO 1/1 Q3,rail_side,far,all,153,7,5.0,40.0,35.0,sigma_Z,40.0,data
+FARO 1/1 Q3,rail_side,near,"[30, 40)",0,0,,,,no data,,no data
+FARO 1/1 Q3,rail_side,near,"[40, 50)",0,0,,,,no data,,no data
+FARO 1/1 Q3,rail_side,near,"[50, 60)",0,0,,,,no data,,no data
+FARO 1/1 Q3,rail_side,near,"[60, 70)",11,1,20.0,25.0,25.0,data,25.0,data
+FARO 1/1 Q3,rail_side,near,"[70, 80)",59,4,5.0,40.0,35.0,sigma_Z,40.0,data
+FARO 1/1 Q3,rail_side,near,"[80, 90)",29,2,10.0,20.0,20.0,data,20.0,data
+FARO 1/1 Q3,rail_side,near,all,145,7,5.0,40.0,35.0,sigma_Z,40.0,data
+FARO 1/1 Q3,rail_side,single,"[20, 30)",0,0,,,,no data,,no data
+FARO 1/1 Q3,rail_side,single,"[30, 40)",0,0,,,,no data,,no data
+FARO 1/1 Q3,rail_side,single,"[40, 50)",0,0,,,,no data,,no data
+FARO 1/1 Q3,rail_side,single,"[50, 60)",0,0,,,,no data,,no data
+FARO 1/1 Q3,rail_side,single,"[60, 70)",11,1,20.0,25.0,25.0,data,25.0,data
+FARO 1/1 Q3,rail_side,single,"[70, 80)",50,4,25.0,50.0,30.0,sigma_Z,50.0,data
+FARO 1/1 Q3,rail_side,single,"[80, 90)",30,2,30.0,55.0,35.0,sigma_Z,55.0,data
+FARO 1/1 Q3,rail_side,single,all,136,8,15.0,55.0,35.0,sigma_Z,55.0,data
+FARO 1/2 Q4,rail_side,far,"[30, 40)",0,0,,,,no data,,no data
+FARO 1/2 Q4,rail_side,far,"[40, 50)",0,0,,,,no data,,no data
+FARO 1/2 Q4,rail_side,far,"[50, 60)",13,1,5.0,10.0,10.0,data,10.0,data
+FARO 1/2 Q4,rail_side,far,"[60, 70)",34,2,10.0,25.0,25.0,data,25.0,data
+FARO 1/2 Q4,rail_side,far,"[70, 80)",69,4,5.0,30.0,30.0,data,30.0,data
+FARO 1/2 Q4,rail_side,far,"[80, 90)",35,2,10.0,20.0,20.0,data,20.0,data
+FARO 1/2 Q4,rail_side,far,all,195,6,5.0,35.0,35.0,data,35.0,data
+FARO 1/2 Q4,rail_side,near,"[30, 40)",0,0,,,,no data,,no data
+FARO 1/2 Q4,rail_side,near,"[40, 50)",12,1,5.0,10.0,10.0,data,10.0,data
+FARO 1/2 Q4,rail_side,near,"[50, 60)",12,1,5.0,10.0,10.0,data,10.0,data
+FARO 1/2 Q4,rail_side,near,"[60, 70)",32,2,10.0,25.0,25.0,data,25.0,data
+FARO 1/2 Q4,rail_side,near,"[70, 80)",59,4,5.0,30.0,30.0,data,30.0,data
+FARO 1/2 Q4,rail_side,near,"[80, 90)",34,2,10.0,20.0,20.0,data,20.0,data
+FARO 1/2 Q4,rail_side,near,all,199,7,0.0,35.0,35.0,data,35.0,data
+FARO 1/2 Q4,rail_side,single,"[20, 30)",0,0,,,,no data,,no data
+FARO 1/2 Q4,rail_side,single,"[30, 40)",0,0,,,,no data,,no data
+FARO 1/2 Q4,rail_side,single,"[40, 50)",0,0,,,,no data,,no data
+FARO 1/2 Q4,rail_side,single,"[50, 60)",0,0,,,,no data,,no data
+FARO 1/2 Q4,rail_side,single,"[60, 70)",0,0,,,,no data,,no data
+FARO 1/2 Q4,rail_side,single,"[70, 80)",44,3,15.0,30.0,30.0,data,30.0,data
+FARO 1/2 Q4,rail_side,single,"[80, 90)",11,1,20.0,25.0,25.0,data,25.0,data
+FARO 1/2 Q4,rail_side,single,all,102,6,5.0,35.0,35.0,data,35.0,data
+RTC360,rail_side,far,"[30, 40)",0,0,,,,no data,,no data
+RTC360,rail_side,far,"[40, 50)",12,1,5.0,10.0,10.0,data,10.0,data
+RTC360,rail_side,far,"[50, 60)",58,3,5.0,20.0,20.0,data,20.0,data
+RTC360,rail_side,far,"[60, 70)",87,4,0.0,25.0,25.0,data,25.0,data
+RTC360,rail_side,far,"[70, 80)",112,5,5.0,35.0,35.0,data,35.0,data
+RTC360,rail_side,far,"[80, 90)",43,2,10.0,20.0,20.0,data,20.0,data
+RTC360,rail_side,far,all,325,7,0.0,35.0,35.0,data,35.0,data
+RTC360,rail_side,near,"[30, 40)",0,0,,,,no data,,no data
+RTC360,rail_side,near,"[40, 50)",19,1,5.0,10.0,10.0,data,10.0,data
+RTC360,rail_side,near,"[50, 60)",57,3,5.0,20.0,20.0,data,20.0,data
+RTC360,rail_side,near,"[60, 70)",73,3,10.0,25.0,25.0,data,25.0,data
+RTC360,rail_side,near,"[70, 80)",107,5,5.0,35.0,35.0,data,35.0,data
+RTC360,rail_side,near,"[80, 90)",44,2,10.0,20.0,20.0,data,20.0,data
+RTC360,rail_side,near,all,326,7,0.0,35.0,35.0,data,35.0,data
+RTC360,rail_side,single,"[30, 40)",12,1,5.0,10.0,10.0,data,10.0,data
+RTC360,rail_side,single,"[40, 50)",0,0,,,,no data,,no data
+RTC360,rail_side,single,"[50, 60)",0,0,,,,no data,,no data
+RTC360,rail_side,single,"[60, 70)",33,2,0.0,15.0,15.0,data,15.0,data
+RTC360,rail_side,single,"[70, 80)",138,4,5.0,30.0,30.0,data,30.0,data
+RTC360,rail_side,single,"[80, 90)",78,3,10.0,35.0,35.0,data,35.0,data
+RTC360,rail_side,single,all,300,7,0.0,35.0,35.0,data,35.0,data
+FARO 1/1 Q3,direction,longitudinal,"[20, 30)",0,0,,,,no data,,no data
+FARO 1/1 Q3,direction,longitudinal,"[30, 40)",10,1,10.0,15.0,15.0,data,15.0,data
+FARO 1/1 Q3,direction,longitudinal,"[40, 50)",12,1,10.0,15.0,15.0,data,15.0,data
+FARO 1/1 Q3,direction,longitudinal,"[50, 60)",31,2,10.0,20.0,20.0,data,20.0,data
+FARO 1/1 Q3,direction,longitudinal,"[60, 70)",51,2,15.0,25.0,25.0,data,25.0,data
+FARO 1/1 Q3,direction,longitudinal,"[70, 80)",161,6,5.0,50.0,35.0,sigma_Z,50.0,data
+FARO 1/1 Q3,direction,longitudinal,"[80, 90)",152,7,10.0,60.0,35.0,sigma_Z,60.0,data
+FARO 1/1 Q3,direction,longitudinal,all,432,11,5.0,60.0,35.0,sigma_Z,60.0,data
+FARO 1/1 Q3,direction,oblique,"[50, 60)",0,0,,,,no data,,no data
+FARO 1/1 Q3,direction,oblique,"[60, 70)",0,0,,,,no data,,no data
+FARO 1/1 Q3,direction,oblique,"[70, 80)",24,1,5.0,10.0,10.0,data,10.0,data
+FARO 1/1 Q3,direction,oblique,"[80, 90)",0,0,,,,no data,,no data
+FARO 1/1 Q3,direction,oblique,all,24,1,5.0,10.0,10.0,data,10.0,data
+FARO 1/1 Q3,direction,perpendicular,"[40, 50)",0,0,,,,no data,,no data
+FARO 1/1 Q3,direction,perpendicular,"[50, 60)",0,0,,,,no data,,no data
+FARO 1/1 Q3,direction,perpendicular,"[60, 70)",0,0,,,,no data,,no data
+FARO 1/1 Q3,direction,perpendicular,"[70, 80)",10,1,5.0,10.0,10.0,data,10.0,data
+FARO 1/1 Q3,direction,perpendicular,all,12,1,5.0,10.0,10.0,data,10.0,data
+FARO 1/2 Q4,direction,longitudinal,"[20, 30)",0,0,,,,no data,,no data
+FARO 1/2 Q4,direction,longitudinal,"[30, 40)",0,0,,,,no data,,no data
+FARO 1/2 Q4,direction,longitudinal,"[40, 50)",0,0,,,,no data,,no data
+FARO 1/2 Q4,direction,longitudinal,"[50, 60)",10,1,5.0,10.0,10.0,data,10.0,data
+FARO 1/2 Q4,direction,longitudinal,"[60, 70)",76,3,10.0,25.0,25.0,data,25.0,data
+FARO 1/2 Q4,direction,longitudinal,"[70, 80)",173,6,5.0,40.0,35.0,sigma_Z,40.0,data
+FARO 1/2 Q4,direction,longitudinal,"[80, 90)",116,4,10.0,35.0,35.0,data,35.0,data
+FARO 1/2 Q4,direction,longitudinal,all,412,7,5.0,40.0,35.0,sigma_Z,40.0,data
+FARO 1/2 Q4,direction,oblique,"[20, 30)",0,0,,,,no data,,no data
+FARO 1/2 Q4,direction,oblique,"[30, 40)",0,0,,,,no data,,no data
+FARO 1/2 Q4,direction,oblique,"[40, 50)",0,0,,,,no data,,no data
+FARO 1/2 Q4,direction,oblique,"[50, 60)",13,1,5.0,10.0,10.0,data,10.0,data
+FARO 1/2 Q4,direction,oblique,"[60, 70)",0,0,,,,no data,,no data
+FARO 1/2 Q4,direction,oblique,"[70, 80)",21,1,5.0,10.0,10.0,data,10.0,data
+FARO 1/2 Q4,direction,oblique,"[80, 90)",0,0,,,,no data,,no data
+FARO 1/2 Q4,direction,oblique,all,58,2,5.0,15.0,15.0,data,15.0,data
+FARO 1/2 Q4,direction,perpendicular,"[30, 40)",0,0,,,,no data,,no data
+FARO 1/2 Q4,direction,perpendicular,"[40, 50)",11,1,5.0,10.0,10.0,data,10.0,data
+FARO 1/2 Q4,direction,perpendicular,"[50, 60)",0,0,,,,no data,,no data
+FARO 1/2 Q4,direction,perpendicular,"[60, 70)",0,0,,,,no data,,no data
+FARO 1/2 Q4,direction,perpendicular,"[70, 80)",0,0,,,,no data,,no data
+FARO 1/2 Q4,direction,perpendicular,all,36,2,0.0,10.0,10.0,data,10.0,data
+RTC360,direction,longitudinal,"[30, 40)",11,1,10.0,15.0,15.0,data,15.0,data
+RTC360,direction,longitudinal,"[40, 50)",11,1,10.0,15.0,15.0,data,15.0,data
+RTC360,direction,longitudinal,"[50, 60)",58,3,5.0,20.0,20.0,data,20.0,data
+RTC360,direction,longitudinal,"[60, 70)",142,3,10.0,25.0,25.0,data,25.0,data
+RTC360,direction,longitudinal,"[70, 80)",302,5,5.0,35.0,35.0,data,35.0,data
+RTC360,direction,longitudinal,"[80, 90)",158,3,10.0,35.0,35.0,data,35.0,data
+RTC360,direction,longitudinal,all,697,6,5.0,35.0,35.0,data,35.0,data
+RTC360,direction,oblique,"[30, 40)",0,0,,,,no data,,no data
+RTC360,direction,oblique,"[40, 50)",15,1,5.0,10.0,10.0,data,10.0,data
+RTC360,direction,oblique,"[50, 60)",30,1,5.0,10.0,10.0,data,10.0,data
+RTC360,direction,oblique,"[60, 70)",39,2,0.0,15.0,15.0,data,15.0,data
+RTC360,direction,oblique,"[70, 80)",35,1,5.0,10.0,10.0,data,10.0,data
+RTC360,direction,oblique,"[80, 90)",0,0,,,,no data,,no data
+RTC360,direction,oblique,all,146,3,0.0,15.0,15.0,data,15.0,data
+RTC360,direction,perpendicular,"[30, 40)",0,0,,,,no data,,no data
+RTC360,direction,perpendicular,"[40, 50)",20,1,5.0,10.0,10.0,data,10.0,data
+RTC360,direction,perpendicular,"[50, 60)",28,1,5.0,10.0,10.0,data,10.0,data
+RTC360,direction,perpendicular,"[60, 70)",17,1,0.0,5.0,5.0,data,5.0,data
+RTC360,direction,perpendicular,"[70, 80)",23,1,5.0,10.0,10.0,data,10.0,data
+RTC360,direction,perpendicular,all,105,2,0.0,10.0,10.0,data,10.0,data

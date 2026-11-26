@@ -1,0 +1,4 @@
+scanner,tau0_m,ratio_at_tau0,first_tau_above_m,n_bins,bin_length_m
+FARO 1/1 Q3,0.15,1.1059,0.2,4,0.125
+FARO 1/2 Q4,0.15,1.1389,0.2,4,0.125
+RTC360,0.05,1.1135,0.075,10,0.05
